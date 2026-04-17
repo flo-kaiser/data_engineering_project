@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: fct_market_summary
+    description: "The primary analytical table for the Gold Intelligence Framework. Aggregates all key drivers."
+    columns:
+      - name: month
+        description: "The month of observation."
+        tests:
+          - not_null
+          - unique
+      - name: avg_gold_price_usd
+        description: "Average gold price in USD per ounce for the month."
+        tests:
+          - not_null
+      - name: avg_gold_price_usd_ton
+        description: "Average gold price in USD per metric ton."
+      - name: total_gold_reserves_tonnes
+        description: "Total global official gold reserves in metric tonnes."
+      - name: avg_fx_usd_eur
+        description: "Average USD/EUR exchange rate."
+      - name: rolling_corr_12m
+        description: "12-month rolling Pearson correlation between gold price and real rates."
+      - name: gold_price_eur
+        description: "Gold price converted to EUR using the average monthly exchange rate."
+
+  - name: fct_gold_valuation_index
+    description: "A calculated valuation index using a weighted score of macro-economic drivers."
+    columns:
+      - name: month
+        description: "The month of observation."
+      - name: valuation_score
+        description: "Weighted score: High reserves + Weak USD + Negative Correlation with Rates."
+        tests:
+          - not_null

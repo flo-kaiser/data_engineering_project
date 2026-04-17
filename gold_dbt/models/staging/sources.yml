@@ -15,3 +15,8 @@ sources:
       - name: sp500
       - name: yield_10y
       - name: crude_oil
+      - name: gold_prices_api
+      - name: gold_reserves_api
+      - name: real_interest_rates_api
+      - name: fx_usd_eur_api
+      - name: ingestion_metadata

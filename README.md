@@ -1,39 +1,47 @@
-# 🏆 Gold Intelligence Framework (Full-API Driven)
+# 🏆 Gold Intelligence Framework (100% API-Driven)
 
-Professional Market Data Platform using a Medallion Architecture.
+Professional Market Data Platform using a Medallion Architecture (Bronze, Silver, Gold).
 
-## 🏗 Architecture
-This project implements a three-tier data architecture (Medallion Architecture) powered by **DuckDB** and **dbt**.
+## 📊 Architecture Overview
+This project implements a "Self-Documenting Pipeline" that aggregates global financial time series exclusively via the **DBnomics API**.
 
-1.  **Bronze (Raw/Ingestion):** Full-API integration via DBnomics. Data is ingested "as-is" with metadata tracking and idempotency.
-2.  **Silver (Staging/Intermediate):** Data cleaning, normalization (e.g., metric tons conversion), and complex financial engineering (Pearson correlation).
-3.  **Gold (Marts):** Business-ready tables (Marts) for BI tools, aggregating monthly market metrics.
+```mermaid
+graph TD
+    API[DBnomics API] -->|Python Ingestor| Bronze[Bronze: Raw Tables]
+    Bronze -->|dbt Staging| Silver[Silver: Cleaned & Normalized]
+    Silver -->|dbt Intermediate| Gold[Gold: Financial Marts]
+    Gold -->|DuckDB| BI[Analytics/BI Tools]
+    
+    subgraph "Medallion Layers"
+    Bronze
+    Silver
+    Gold
+    end
+```
 
-## 🛠 Tech Stack
-- **Database:** DuckDB
-- **Transformation:** dbt (dbt-duckdb)
-- **Ingestion:** Python (DBnomics API)
-- **Orchestration:** Integrated Python Main Script
+## 🏗 Tech Stack
+- **Database:** DuckDB (Storage)
+- **Transformation:** dbt (Logic & Modeling)
+- **Ingestion:** Python (Modular `DBnomicsIngestor`)
+- **Reporting:** dbt-docs & Markdown
 
 ## 📂 Project Structure
-- `gold_dbt/`: dbt project for transformation logic.
-  - `models/staging/`: Silver layer (cleaning).
-  - `models/intermediate/`: Silver layer (complex logic like correlations).
-  - `models/marts/`: Gold layer (analytical views).
-- `ingest_manager.py`: Modular Python framework for API ingestion.
-- `main.py`: Central orchestration script.
-- `project_description.md`: Detailed enterprise specification.
+- `gold_dbt/`: dbt project root.
+  - `models/staging/`: Silver Layer - Normalization (e.g., Tons conversion).
+  - `models/intermediate/`: Silver Layer - Analytics (e.g., Pearson Correlation).
+  - `models/marts/`: Gold Layer - Business-ready views.
+- `ingest_manager.py`: Ingestion framework with idempotency and metadata tracking.
+- `main.py`: Central orchestration (Ingest -> dbt Run -> dbt Test).
+- `logs/`: Traceability for all pipeline steps.
 
-## 🚀 Getting Started
-1. **Environment Setup:**
-   ```bash
-   pip install duckdb dbt-duckdb pandas dbnomics
-   ```
-2. **Execution:**
-   ```bash
-   python main.py
-   ```
-   This will trigger ingestion, dbt runs, and tests.
+## 🚀 Execution
+To run the full pipeline, ensure dependencies are installed and execute:
+```bash
+pip install duckdb dbt-duckdb pandas dbnomics
+python main.py
+```
 
-## 📊 Monitoring & Logging
-Detailed logs are stored in the `logs/` directory. Metadata-tracking ensures traceability of every API request.
+## 📖 Documentation Standard
+- **Google-Style Docstrings:** All Python components.
+- **dbt Docs:** Column-level descriptions in `schema.yml`.
+- **Automated Tests:** Integrity and value thresholds for financial data.

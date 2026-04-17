@@ -1,9 +1,9 @@
 with prices as (
     select
         date_trunc('month', price_date) as market_month,
-        price as gold_price_usd
+        avg(price_usd_per_oz) as gold_price_usd
     from {{ ref('stg_gold_prices') }}
-    where currency = 'USD'
+    group by 1
 ),
 
 etf as (
