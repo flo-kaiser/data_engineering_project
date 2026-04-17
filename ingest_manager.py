@@ -81,13 +81,15 @@ class DBnomicsIngestor:
                 raise ValueError(f"Series {series_id} returned no data.")
 
             # Clean and prepare dataframe
+            # We standardize on 'period', 'value', 'series_id', and 'ingested_at'
             df_cleaned = df[['period', 'value']].copy()
             df_cleaned['period'] = pd.to_datetime(df_cleaned['period']).dt.date
             df_cleaned['series_id'] = series_id
             df_cleaned['ingested_at'] = datetime.now()
 
-            # Idempotent Write: We use CREATE OR REPLACE for the raw bronze layer
-            # This ensures that we have a clean, deduplicated copy of the latest API state.
+            # Idempotent Write: Use CREATE OR REPLACE for the raw bronze layer
+            # This ensures we have a clean, deduplicated copy of the latest API state.
+            # In a production system, this could be changed to an UPSERT logic.
             self.con.register('tmp_df', df_cleaned)
             self.con.execute(f"CREATE OR REPLACE TABLE bronze.{table_name} AS SELECT * FROM tmp_df")
             self.con.unregister('tmp_df')
@@ -118,6 +120,7 @@ class DBnomicsIngestor:
 
 if __name__ == "__main__":
     # Define the core API series for the Gold Intelligence Framework
+    # Note: FED/H15/RIFLGFCY10_XII_N.M is used as the 10Y Real Interest Rate (TIPS)
     series_map = {
         'WB/commodity_prices/FGOLD-1W': 'gold_prices_api',
         'IMF/IFS/M.W00.RAFAGOLDV_OZT': 'gold_reserves_api',
