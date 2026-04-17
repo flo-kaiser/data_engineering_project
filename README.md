@@ -1,32 +1,39 @@
-# Gold Market Intelligence Platform
+# 🏆 Gold Intelligence Framework (Full-API Driven)
 
-This project implements a "Medallion" architecture data pipeline using **DuckDB** and **dbt** to transform messy gold market Excel data into structured analytical views.
+Professional Market Data Platform using a Medallion Architecture.
 
-## Project Structure
-- `xls/`: Raw Excel data files (Mining, Prices, ETF Flows, etc.).
-- `gold_dbt/`: dbt project directory.
-  - `ingest.py`: Python script to load raw Excel and Yahoo Finance data into the `bronze` schema.
-  - `models/staging/`: Silver layer models (cleaning, unpivoting/melting).
-  - `models/marts/`: Gold layer models (analytical joins and frequency alignment).
-  - `data/`: Contains the `gold_market.duckdb` database.
+## 🏗 Architecture
+This project implements a three-tier data architecture (Medallion Architecture) powered by **DuckDB** and **dbt**.
 
-## Setup & Execution
-1. Install dependencies:
+1.  **Bronze (Raw/Ingestion):** Full-API integration via DBnomics. Data is ingested "as-is" with metadata tracking and idempotency.
+2.  **Silver (Staging/Intermediate):** Data cleaning, normalization (e.g., metric tons conversion), and complex financial engineering (Pearson correlation).
+3.  **Gold (Marts):** Business-ready tables (Marts) for BI tools, aggregating monthly market metrics.
+
+## 🛠 Tech Stack
+- **Database:** DuckDB
+- **Transformation:** dbt (dbt-duckdb)
+- **Ingestion:** Python (DBnomics API)
+- **Orchestration:** Integrated Python Main Script
+
+## 📂 Project Structure
+- `gold_dbt/`: dbt project for transformation logic.
+  - `models/staging/`: Silver layer (cleaning).
+  - `models/intermediate/`: Silver layer (complex logic like correlations).
+  - `models/marts/`: Gold layer (analytical views).
+- `ingest_manager.py`: Modular Python framework for API ingestion.
+- `main.py`: Central orchestration script.
+- `project_description.md`: Detailed enterprise specification.
+
+## 🚀 Getting Started
+1. **Environment Setup:**
    ```bash
-   pip install duckdb dbt-duckdb pandas openpyxl yfinance
+   pip install duckdb dbt-duckdb pandas dbnomics
    ```
-2. Ingest raw data:
+2. **Execution:**
    ```bash
-   python gold_dbt/ingest.py
+   python main.py
    ```
-3. Run dbt transformations:
-   ```bash
-   cd gold_dbt
-   dbt deps
-   dbt run
-   ```
+   This will trigger ingestion, dbt runs, and tests.
 
-## Key Transformations
-- **The "Melt" Task:** wide-format monthly prices and ETF flows are unpivoted into long-format time series.
-- **Frequency Alignment:** Daily market data (DXY, S&P 500, Yields) is aggregated to monthly averages to align with monthly gold prices and quarterly demand data.
-- **Data Cleaning:** Messy headers and disclaimers in the raw Excel files are stripped using dbt SQL logic.
+## 📊 Monitoring & Logging
+Detailed logs are stored in the `logs/` directory. Metadata-tracking ensures traceability of every API request.
