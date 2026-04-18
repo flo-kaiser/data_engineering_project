@@ -7,6 +7,10 @@ import io
 from datetime import datetime
 from typing import Dict, Optional
 from google.cloud import storage
+from dotenv import load_dotenv
+
+# Load .env file if it exists
+load_dotenv()
 
 # --- Configuration & Setup ---
 LOG_DIR = 'logs'

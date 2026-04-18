@@ -2,7 +2,7 @@ import os
 import subprocess
 import logging
 import sys
-from ingest_manager import DBnomicsIngestor
+from ingest_manager import GoldIngestor
 
 # --- Setup Logging ---
 LOG_DIR = 'logs'
@@ -55,7 +55,7 @@ def main():
         'ECB/EXR/M.USD.EUR.SP00.A': 'fx_usd_eur_api'
     }
     
-    ingestor = DBnomicsIngestor()
+    ingestor = GoldIngestor()
     try:
         for sid, table in series_map.items():
             ingestor.fetch_and_ingest(sid, table)
