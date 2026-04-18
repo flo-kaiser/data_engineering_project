@@ -4,13 +4,15 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    UV_PROJECT_ENVIRONMENT=/usr/local/venv
+    UV_PROJECT_ENVIRONMENT=/usr/local/venv \
+    AIRFLOW_HOME=/usr/local/airflow
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     build-essential \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
@@ -21,14 +23,19 @@ WORKDIR /app
 
 # Copy project files
 COPY pyproject.toml .
-# If uv.lock existed, we'd copy it too
-# COPY uv.lock .
+COPY uv.lock .
 
 # Install dependencies using uv
 RUN uv sync --no-dev
 
+# Create Airflow directories
+RUN mkdir -p ${AIRFLOW_HOME}/dags ${AIRFLOW_HOME}/logs ${AIRFLOW_HOME}/plugins
+
 # Copy the rest of the application
 COPY . .
 
-# Default command (can be overridden for Airflow, dbt, etc.)
-CMD ["uv", "run", "python", "main.py"]
+# Expose ports for Airflow (8080) and Streamlit (8501)
+EXPOSE 8080 8501
+
+# Default command
+CMD ["uv", "run", "airflow", "standalone"]
