@@ -45,45 +45,26 @@ def main():
     logger.info("======================================================")
     logger.info("🚀 GOLD INTELLIGENCE FRAMEWORK: FULL PIPELINE START")
     logger.info("======================================================")
-    
-    ingestor = GoldIngestor()
-    
-    try:
-        # 1. Ingestion Phase
-        logger.info("--- Phase 1: Ingestion (Bronze Layer) ---")
-        
-        # 1a. DBnomics API Data
-        series_map = {
-            'WB/commodity_prices/FGOLD-1W': 'gold_prices_api',
-            'IMF/IFS/M.W00.RAFAGOLDV_OZT': 'gold_reserves_api',
-            'FED/H15/RIFLGFCY10_XII_N.M': 'real_interest_rates_api',
-            'ECB/EXR/M.USD.EUR.SP00.A': 'fx_usd_eur_api'
-        }
-        for sid, table in series_map.items():
-            ingestor.fetch_and_ingest(sid, table)
+    from ingest_manager import GoldIngestor
+    from config import SERIES_MAP, EXCEL_MAP, YFINANCE_MAP
 
-        # 1b. Excel File Data
-        xls_files = {
-            'gold_stocks': ('xls/above-ground-gold-stocks.xlsx', 0),
-            'etf_flows': ('xls/ETF_Flows_March_2026.xlsx', 'Fund flows by month'),
-            'gdt_demand': ('xls/GDT_Tables_Q425_EN.xlsx', 'Gold Balance'),
-            'gold_prices': ('xls/Gold_price_averages_in_a range_of_currencies_since_1978.xlsx', 'Monthly_Avg'),
-            'mining_production': ('xls/Gold-Mining-Production-Volumes-Data-2025.xlsx', 'MINE SUPPLY DATA'),
-            'gold_premiums': ('xls/gold-premiums.xlsx', 0),
-            'central_bank_holdings': ('xls/World_official_gold_holdings_as_of_Apr2026_IFS.xlsx', 0)
-        }
-        for table, (path, sheet) in xls_files.items():
-            ingestor.ingest_excel(path, table, sheet)
+    # --- Setup Logging ---
+    ...
+        try:
+            # 1. Ingestion Phase
+            logger.info("--- Phase 1: Ingestion (Bronze Layer) ---")
 
-        # 1c. Yahoo Finance Data
-        symbols = {
-            'dxy': 'DX-Y.NYB', 
-            'sp500': '^GSPC', 
-            'yield_10y': '^TNX',
-            'crude_oil': 'CL=F'
-        }
-        for table, symbol in symbols.items():
-            ingestor.fetch_yfinance(symbol, table)
+            # 1a. DBnomics API Data
+            for sid, table in SERIES_MAP.items():
+                ingestor.fetch_and_ingest(sid, table)
+
+            # 1b. Excel File Data
+            for table, (path, sheet) in EXCEL_MAP.items():
+                ingestor.ingest_excel(path, table, sheet)
+
+            # 1c. Yahoo Finance Data
+            for table, symbol in YFINANCE_MAP.items():
+                ingestor.fetch_yfinance(symbol, table)
 
     except Exception as e:
         logger.critical(f"❌ Critical error during ingestion: {str(e)}")

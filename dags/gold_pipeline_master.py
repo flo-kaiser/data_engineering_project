@@ -15,24 +15,37 @@ default_args = {
     'email_on_failure': True,
     'email': ['admin@goldproject.com'],
     'retries': 2,
-    'retry_delay': timedelta(minutes=5),
-}
+    from ingest_manager import GoldIngestor
+    from config import SERIES_MAP, EXCEL_MAP, YFINANCE_MAP
 
-def run_ingestion():
-    """Wrapper function to trigger the GoldIngestor."""
-    series_map = {
-        'WB/commodity_prices/FGOLD-1W': 'gold_prices_api',
-        'IMF/IFS/M.W00.RAFAGOLDV_OZT': 'gold_reserves_api',
-        'FED/H15/RIFLGFCY10_XII_N.M': 'real_interest_rates_api',
-        'ECB/EXR/M.USD.EUR.SP00.A': 'fx_usd_eur_api'
-    }
-    
-    ingestor = GoldIngestor()
-    try:
-        for sid, table in series_map.items():
-            ingestor.fetch_and_ingest(sid, table)
-    finally:
-        ingestor.close()
+    default_args = {
+    ...
+    def run_api_ingestion():
+        """Ingests data from DBnomics APIs."""
+        ingestor = GoldIngestor()
+        try:
+            for sid, table in SERIES_MAP.items():
+                ingestor.fetch_and_ingest(sid, table)
+        finally:
+            ingestor.close()
+
+    def run_excel_ingestion():
+        """Ingests market fundamental data from Excel files."""
+        ingestor = GoldIngestor()
+        try:
+            for table, (path, sheet) in EXCEL_MAP.items():
+                ingestor.ingest_excel(path, table, sheet)
+        finally:
+            ingestor.close()
+
+    def run_indicator_ingestion():
+        """Ingests macro indicators from Yahoo Finance."""
+        ingestor = GoldIngestor()
+        try:
+            for table, symbol in YFINANCE_MAP.items():
+                ingestor.fetch_yfinance(symbol, table)
+        finally:
+            ingestor.close()
 
 with DAG(
     'gold_pipeline_master',
@@ -44,24 +57,35 @@ with DAG(
     tags=['gold', 'finance', 'dbt'],
 ) as dag:
 
-    # Task 1: Ingest Raw Data from DBnomics
-    ingest_task = PythonOperator(
-        task_id='ingest_dbnomics_to_bronze',
-        python_callable=run_ingestion,
+    # Task 1: Ingest API Data
+    task_ingest_api = PythonOperator(
+        task_id='ingest_api_data',
+        python_callable=run_api_ingestion,
     )
 
-    # Task 2: Run dbt Transformations (Silver & Gold Layers)
-    # Using BashOperator for dbt to allow environment-based target switching
-    dbt_run_task = BashOperator(
+    # Task 2: Ingest Excel Data
+    task_ingest_excel = PythonOperator(
+        task_id='ingest_excel_data',
+        python_callable=run_excel_ingestion,
+    )
+
+    # Task 3: Ingest Market Indicators
+    task_ingest_indicators = PythonOperator(
+        task_id='ingest_market_indicators',
+        python_callable=run_indicator_ingestion,
+    )
+
+    # Task 4: dbt Run (Silver & Gold Layers)
+    task_dbt_run = BashOperator(
         task_id='dbt_run_gold_marts',
         bash_command='cd gold_dbt && dbt run --target {{ var.value.get("DBT_TARGET", "dev") }}',
     )
 
-    # Task 3: Run dbt Tests to ensure data quality
-    dbt_test_task = BashOperator(
+    # Task 5: dbt Test
+    task_dbt_test = BashOperator(
         task_id='dbt_test_quality_checks',
         bash_command='cd gold_dbt && dbt test --target {{ var.value.get("DBT_TARGET", "dev") }}',
     )
 
-    # Define DAG Lineage
-    ingest_task >> dbt_run_task >> dbt_test_task
+    # Define DAG Lineage (Parallel Ingestion -> Sequential Transformation)
+    [task_ingest_api, task_ingest_excel, task_ingest_indicators] >> task_dbt_run >> task_dbt_test
