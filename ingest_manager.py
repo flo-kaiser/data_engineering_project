@@ -120,7 +120,7 @@ class DBnomicsIngestor:
 
 if __name__ == "__main__":
     # Define the core API series for the Gold Intelligence Framework
-    # Note: FED/H15/RIFLGFCY10_XII_N.M is used as the 10Y Real Interest Rate (TIPS)
+    # Note: We use FED/H15/RIFLGFCY10_XII_N.M as the benchmark 10Y interest rate.
     series_map = {
         'WB/commodity_prices/FGOLD-1W': 'gold_prices_api',
         'IMF/IFS/M.W00.RAFAGOLDV_OZT': 'gold_reserves_api',

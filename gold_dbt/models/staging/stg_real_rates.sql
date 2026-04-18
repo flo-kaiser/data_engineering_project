@@ -1,3 +1,10 @@
+/*
+    MODEL: stg_real_rates
+    DESCRIPTION: 
+    Silver Layer - Staging model for 10Y Interest Rates.
+    Note: FED/H15/RIFLGFCY10_XII_N.M is used as the benchmark 10Y rate.
+*/
+
 {{ config(materialized='view') }}
 
 WITH raw AS (

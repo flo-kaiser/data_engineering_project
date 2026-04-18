@@ -25,11 +25,19 @@ models:
         description: "Gold price converted to EUR using the average monthly exchange rate."
 
   - name: fct_gold_valuation_index
-    description: "A calculated valuation index using a weighted score of macro-economic drivers."
+    description: >
+      A calculated valuation index using a weighted score of macro-economic drivers.
+      The score is normalized between 0 and 100, where higher values indicate 
+      stronger bullish conditions for Gold based on:
+      - 40% Central Bank Reserves (Accumulation trend)
+      - 30% EUR Strength (Inverse USD correlation)
+      - 30% Safe Haven Status (Negative correlation with 10Y Real Rates)
     columns:
       - name: month
         description: "The month of observation."
+      - name: avg_gold_price_usd
+        description: "Monthly average gold price (USD/oz) for reference."
       - name: valuation_score
-        description: "Weighted score: High reserves + Weak USD + Negative Correlation with Rates."
+        description: "Weighted score (0-100) based on macro-economic drivers."
         tests:
           - not_null
