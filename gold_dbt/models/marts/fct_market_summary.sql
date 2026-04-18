@@ -38,12 +38,11 @@ fx AS (
 ),
 
 correlation AS (
-    SELECT 
+    SELECT
         month,
         rolling_corr_12m
-    FROM {{ ref('int_gold_correlation') }}
+    FROM {{ ref('fct_gold_correlation') }}
 )
-
 SELECT 
     b.month,
     p.avg_gold_price_usd,

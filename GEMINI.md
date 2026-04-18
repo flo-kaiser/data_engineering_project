@@ -10,7 +10,7 @@ Dieses Projekt wurde unter Nutzung der **Gemini CLI** entwickelt. Folgende Konve
 ### B. dbt Transformation Standard
 *   **SQL Headers:** Jedes neue Modell benötigt einen Header-Kommentar mit Beschreibung und mathematischer Logik.
 *   **YAML Documentation:** Jede neue Spalte muss in `schema.yml` dokumentiert werden.
-*   **Pearson Correlation:** Die Korrelationslogik in `int_gold_correlation.sql` ist das mathematische Herzstück und darf nur nach Validierung der Window-Functions geändert werden.
+*   **Pearson Correlation:** Die Korrelationslogik in `fct_gold_correlation.sql` ist das mathematische Herzstück und darf nur nach Validierung der Window-Functions geändert werden.
 
 ## 2. Technical Stack
 *   **Engine:** DuckDB (OLAP)
