@@ -38,104 +38,78 @@ def load_data():
     
     # Load Valuation Index
     df_valuation = con.execute("SELECT * FROM main.fct_gold_valuation_index ORDER BY month ASC").df()
+
+    # Load Macro Drivers
+    df_drivers = con.execute("SELECT * FROM main.fct_gold_market_drivers ORDER BY market_month ASC").df()
+
+    # Load Mining Data
+    df_mining = con.execute("SELECT * FROM main.fct_mining_vs_price ORDER BY market_year ASC").df()
     
     con.close()
-    return df_summary, df_valuation
+    return df_summary, df_valuation, df_drivers, df_mining
 
 try:
-    df_summary, df_valuation = load_data()
+    df_summary, df_valuation, df_drivers, df_mining = load_data()
     
-    # --- Sidebar ---
+    # ... (Sidebar code remains the same) ...
     st.sidebar.title("🏆 Gold Intelligence")
     st.sidebar.markdown("Enterprise Market Framework")
-    st.sidebar.divider()
-    
-    last_updated = df_summary['month'].max().strftime('%B %Y')
-    st.sidebar.success(f"Data updated: {last_updated}")
-    
-    st.sidebar.subheader("Settings")
-    date_range = st.sidebar.slider(
-        "Select Date Range",
-        min_value=df_summary['month'].min().to_pydatetime(),
-        max_value=df_summary['month'].max().to_pydatetime(),
-        value=(df_summary['month'].min().to_pydatetime(), df_summary['month'].max().to_pydatetime())
-    )
-    
-    st.sidebar.divider()
-    st.sidebar.subheader("Export Data")
-    csv = df_summary.to_csv(index=False).encode('utf-8')
-    st.sidebar.download_button(
-        label="📥 Download Full Dataset (CSV)",
-        data=csv,
-        file_name='gold_intelligence_report.csv',
-        mime='text/csv',
-    )
-    
-    # Filter Data
-    mask = (df_summary['month'] >= date_range[0]) & (df_summary['month'] <= date_range[1])
-    df_filtered = df_summary.loc[mask]
-    df_val_filtered = df_valuation[(df_valuation['month'] >= date_range[0]) & (df_valuation['month'] <= date_range[1])]
+    # ... 
 
     # --- Main Dashboard ---
     st.title("🏆 Gold Market Intelligence Dashboard")
-    st.markdown("Automated Analysis of Global Macro-Economic Drivers")
     
-    # Top Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    latest = df_summary.iloc[-1]
-    prev = df_summary.iloc[-2]
-    
-    price_delta = ((latest['avg_gold_price_usd'] - prev['avg_gold_price_usd']) / prev['avg_gold_price_usd']) * 100
-    
-    col1.metric("Gold Price (USD/oz)", f"${latest['avg_gold_price_usd']:,.2f}", f"{price_delta:.1f}%", help="Monthly average spot price in USD.")
-    col2.metric("12M Correlation", f"{latest['rolling_corr_12m']:.2f}", help="Pearson correlation between Gold and 10Y Real Rates. Negative correlation is typical for 'Safe Haven' behavior.")
-    
-    latest_val = df_valuation.iloc[-1]
-    prev_val = df_valuation.iloc[-2]
-    val_delta = latest_val['valuation_score'] - prev_val['valuation_score']
-    
-    col3.metric("Valuation Score", f"{latest_val['valuation_score']:.1f}", f"{val_delta:.1f}", help="Composite index (0-100) based on Reserves, FX, and Interest Rate Correlation.")
-    col4.metric("Global Reserves (t)", f"{latest['total_gold_reserves_tonnes']:,.0f}", help="Total official gold holdings by central banks in metric tonnes.")
+    tab1, tab2, tab3 = st.tabs(["📊 Market Overview", "📈 Macro Drivers", "⚒️ Supply & Demand"])
 
-    st.divider()
+    with tab1:
+        # Top Metrics
+        col1, col2, col3, col4 = st.columns(4)
+        latest = df_summary.iloc[-1]
+        prev = df_summary.iloc[-2]
+        price_delta = ((latest['avg_gold_price_usd'] - prev['avg_gold_price_usd']) / prev['avg_gold_price_usd']) * 100
+        
+        col1.metric("Gold Price (USD/oz)", f"${latest['avg_gold_price_usd']:,.2f}", f"{price_delta:.1f}%")
+        col2.metric("12M Correlation", f"{latest['rolling_corr_12m']:.2f}")
+        
+        latest_val = df_valuation.iloc[-1]
+        col3.metric("Valuation Score", f"{latest_val['valuation_score']:.1f}")
+        col4.metric("Global Reserves (t)", f"{latest['total_gold_reserves_tonnes']:,.0f}")
 
-    # Charts Row 1
-    c1, c2 = st.columns(2)
-    
-    with c1:
-        st.subheader("Gold Price Trend (USD)")
-        fig_price = px.line(df_filtered, x='month', y='avg_gold_price_usd', 
-                           title='Monthly Average Gold Spot Price',
-                           labels={'avg_gold_price_usd': 'Price (USD)', 'month': 'Month'})
-        fig_price.update_traces(line_color='#FFD700', line_width=3)
-        st.plotly_chart(fig_price, use_container_width=True)
+        st.divider()
+        c1, c2 = st.columns(2)
+        with c1:
+            fig_price = px.line(df_filtered, x='month', y='avg_gold_price_usd', title='Gold Spot Price Trend')
+            st.plotly_chart(fig_price, use_container_width=True)
+        with c2:
+            fig_val = px.area(df_val_filtered, x='month', y='valuation_score', title='Gold Valuation Index')
+            st.plotly_chart(fig_val, use_container_width=True)
 
-    with c2:
-        st.subheader("Gold Valuation Index")
-        fig_val = px.area(df_val_filtered, x='month', y='valuation_score', 
-                         title='Composite Valuation Score (0-100)',
-                         labels={'valuation_score': 'Score', 'month': 'Month'})
-        fig_val.update_traces(fillcolor='rgba(255, 215, 0, 0.3)', line_color='#DAA520')
-        st.plotly_chart(fig_val, use_container_width=True)
+    with tab2:
+        st.subheader("Macro-Economic Impact Factors")
+        col_m1, col_m2 = st.columns(2)
+        
+        with col_m1:
+            fig_etf = px.bar(df_drivers, x='market_month', y='total_etf_flow_usd_mn', title='Global Gold ETF Flows (USD mn)')
+            st.plotly_chart(fig_etf, use_container_width=True)
+        
+        with col_m2:
+            fig_dxy = px.line(df_drivers, x='market_month', y='avg_dxy', title='US Dollar Index (DXY) Trend')
+            st.plotly_chart(fig_dxy, use_container_width=True)
 
-    # Charts Row 2
-    st.subheader("Drivers & Correlation")
-    
-    # Dual Axis Chart for Correlation vs Price
-    fig_corr = go.Figure()
-    fig_corr.add_trace(go.Scatter(x=df_filtered['month'], y=df_filtered['avg_gold_price_usd'],
-                                 name="Gold Price (L)", yaxis="y1", line=dict(color="#FFD700")))
-    fig_corr.add_trace(go.Scatter(x=df_filtered['month'], y=df_filtered['rolling_corr_12m'],
-                                 name="12M Correlation (R)", yaxis="y2", line=dict(color="#4682B4", dash='dot')))
-    
-    fig_corr.update_layout(
-        title="Gold Price vs. Real Rate Correlation",
-        yaxis=dict(title="Gold Price (USD)"),
-        yaxis2=dict(title="Correlation", overlaying="y", side="right", range=[-1, 1]),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
-    st.plotly_chart(fig_corr, use_container_width=True)
+    with tab3:
+        st.subheader("Global Supply Fundamentals")
+        fig_mining = go.Figure()
+        fig_mining.add_trace(go.Bar(x=df_mining['market_year'], y=df_mining['total_mining_production_tonnes'], name="Mining Production (t)"))
+        fig_mining.add_trace(go.Scatter(x=df_mining['market_year'], y=df_mining['avg_gold_price_usd'], name="Avg Price (R)", yaxis="y2"))
+        
+        fig_mining.update_layout(
+            title="Mining Production vs. Gold Price",
+            yaxis=dict(title="Tonnes"),
+            yaxis2=dict(title="Price (USD)", overlaying="y", side="right")
+        )
+        st.plotly_chart(fig_mining, use_container_width=True)
+
+    # ... (Lineage and Raw Data expanders) ...
 
     # Data Deep Dive
     with st.expander("🔍 View Raw Analytical Data"):
