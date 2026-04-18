@@ -8,7 +8,7 @@ years as (
 
 year_mapping as (
     unpivot years
-    on columns(* exclude (col_0))
+    on columns(* exclude (col_0, source_file, ingested_at))
     into name col_name value production_year
 ),
 
@@ -21,7 +21,7 @@ data_rows as (
 
 melted_data as (
     unpivot data_rows
-    on columns(* exclude (col_0))
+    on columns(* exclude (col_0, source_file, ingested_at))
     into name col_name value production_tonnes
 )
 

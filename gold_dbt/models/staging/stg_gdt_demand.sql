@@ -8,7 +8,7 @@ quarters as (
 
 quarter_mapping as (
     unpivot quarters
-    on columns(* exclude (col_0, col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9, col_10, col_11, col_12, col_13, col_14, col_15, col_16, col_17, col_18, col_19, col_20, col_21, col_86, col_87))
+    on columns(* exclude (col_0, col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9, col_10, col_11, col_12, col_13, col_14, col_15, col_16, col_17, col_18, col_19, col_20, col_21, col_86, col_87, source_file, ingested_at))
     into name col_name value q_label
 ),
 
@@ -21,7 +21,7 @@ data_rows as (
 
 melted_data as (
     unpivot data_rows
-    on columns(* exclude (col_0, col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9, col_10, col_11, col_12, col_13, col_14, col_15, col_16, col_17, col_18, col_19, col_20, col_21, col_86, col_87))
+    on columns(* exclude (col_0, col_1, col_2, col_3, col_4, col_5, col_6, col_7, col_8, col_9, col_10, col_11, col_12, col_13, col_14, col_15, col_16, col_17, col_18, col_19, col_20, col_21, col_86, col_87, source_file, ingested_at))
     into name col_name value tonnes
 )
 

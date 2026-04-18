@@ -8,7 +8,7 @@ tickers as (
 
 ticker_mapping as (
     unpivot tickers
-    on columns(* exclude (col_0, col_1, col_2, col_3, col_4))
+    on columns(* exclude (col_0, col_1, col_2, col_3, col_4, source_file, ingested_at))
     into 
         name col_name 
         value ticker
@@ -22,7 +22,7 @@ data_rows as (
 
 melted_data as (
     unpivot data_rows
-    on columns(* exclude (col_0, col_1, col_2, col_3, col_4))
+    on columns(* exclude (col_0, col_1, col_2, col_3, col_4, source_file, ingested_at))
     into 
         name col_name 
         value flow

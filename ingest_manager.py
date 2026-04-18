@@ -61,6 +61,13 @@ class GoldIngestor:
     def _setup_warehouse(self):
         """Creates required schemas and metadata tracking tables."""
         self.con.execute("CREATE SCHEMA IF NOT EXISTS bronze")
+        # Ensure metadata table has source_id instead of series_id
+        try:
+            self.con.execute("SELECT source_id FROM bronze.ingestion_metadata LIMIT 1")
+        except:
+            logger.warning("Upgrading ingestion_metadata table schema...")
+            self.con.execute("DROP TABLE IF EXISTS bronze.ingestion_metadata")
+
         self.con.execute("""
             CREATE TABLE IF NOT EXISTS bronze.ingestion_metadata (
                 source_id VARCHAR,
@@ -167,10 +174,21 @@ class GoldIngestor:
     def _save_data(self, df: pd.DataFrame, table_name: str, source_id: str):
         """Saves dataframe to local Parquet or GCS based on environment."""
         if self.env == 'local':
-            file_path = os.path.join(self.local_data_dir, f"{table_name}.parquet")
+            file_path = os.path.abspath(os.path.join(self.local_data_dir, f"{table_name}.parquet"))
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
             df.to_parquet(file_path, index=False)
-            # Create/Update DuckDB table as a view over the Parquet file for ease of use in dbt
-            self.con.execute(f"CREATE OR REPLACE VIEW bronze.{table_name} AS SELECT * FROM read_parquet('{file_path}')")
+            # Robust drop of existing object regardless of type (Table or View)
+            try:
+                self.con.execute(f"DROP VIEW IF EXISTS bronze.{table_name}")
+            except:
+                pass
+            try:
+                self.con.execute(f"DROP TABLE IF EXISTS bronze.{table_name}")
+            except:
+                pass
+            
+            # Create DuckDB view over the Parquet file using absolute path
+            self.con.execute(f"CREATE VIEW bronze.{table_name} AS SELECT * FROM read_parquet('{file_path}')")
             self._update_metadata(source_id, table_name, len(df), "SUCCESS")
         else:
             self._ingest_to_gcs(df, table_name)
