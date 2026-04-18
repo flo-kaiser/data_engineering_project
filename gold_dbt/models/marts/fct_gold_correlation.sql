@@ -44,4 +44,5 @@ SELECT
         ROWS BETWEEN 11 PRECEDING AND CURRENT ROW
     ) AS rolling_corr_12m
 FROM joined
+QUALIFY rolling_corr_12m IS NOT NULL
 ORDER BY month DESC
