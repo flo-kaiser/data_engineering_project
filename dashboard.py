@@ -141,6 +141,22 @@ try:
     with st.expander("🔍 View Raw Analytical Data"):
         st.dataframe(df_filtered.sort_values('month', ascending=False), use_container_width=True)
 
+    # Ingestion Metadata / Lineage
+    with st.expander("⛓️ Data Lineage & Freshness (Bronze Layer)"):
+        con = duckdb.connect('gold_dbt/data/gold_market.duckdb')
+        df_meta = con.execute("SELECT * FROM bronze.ingestion_metadata ORDER BY last_updated DESC").df()
+        con.close()
+        
+        st.markdown("### Latest Ingestion Jobs")
+        st.dataframe(df_meta, use_container_width=True)
+        
+        # Simple health check based on metadata
+        failed_jobs = df_meta[df_meta['status'] == 'FAILED']
+        if not failed_jobs.empty:
+            st.warning(f"Found {len(failed_jobs)} failed ingestion jobs. Check logs for details.")
+        else:
+            st.success("All recent ingestion jobs completed successfully.")
+
 except Exception as e:
     st.error(f"Error loading dashboard: {str(e)}")
     st.info("Make sure the pipeline has been run successfully: `python main.py`")

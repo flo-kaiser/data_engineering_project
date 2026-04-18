@@ -6,7 +6,7 @@ import logging
 import io
 from datetime import datetime
 from typing import Dict, Optional
-from google.cloud import storage
+from google.cloud import storage, bigquery
 from dotenv import load_dotenv
 
 # Load .env file if it exists
@@ -56,7 +56,8 @@ class GoldIngestor:
             logger.info(f"Initialized GoldIngestor in LOCAL mode (Storage: {self.local_data_dir})")
         else:
             self.storage_client = storage.Client()
-            logger.info(f"Initialized GoldIngestor in PROD mode (GCS: {self.bucket_name})")
+            self.bq_client = bigquery.Client()
+            logger.info(f"Initialized GoldIngestor in PROD mode (GCS: {self.bucket_name}, BQ: {os.getenv('GCP_PROJECT_ID')})")
 
     def _setup_warehouse(self):
         """Creates required schemas and metadata tracking tables."""
@@ -208,13 +209,39 @@ class GoldIngestor:
         blob.upload_from_string(buffer.getvalue(), content_type='application/octet-stream')
 
     def _update_metadata(self, source_id: str, table_name: str, row_count: int, status: str, error_msg: Optional[str] = None):
-        """Updates the internal metadata table."""
+        """Updates the internal metadata table in the active warehouse (DuckDB or BigQuery)."""
         now = datetime.now()
-        self.con.execute("""
-            INSERT INTO bronze.ingestion_metadata 
-            (source_id, target_table, last_updated, row_count, status, error_message)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, [source_id, table_name, now, row_count, status, error_msg])
+        
+        if self.env == 'local':
+            self.con.execute("""
+                INSERT INTO bronze.ingestion_metadata 
+                (source_id, target_table, last_updated, row_count, status, error_message)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, [source_id, table_name, now, row_count, status, error_msg])
+        else:
+            # Prod: Write to BigQuery
+            dataset_id = os.getenv('GCP_DATASET', 'gold_analytics')
+            project_id = os.getenv('GCP_PROJECT_ID')
+            table_id = f"{project_id}.{dataset_id}.ingestion_metadata"
+            
+            rows_to_insert = [{
+                "source_id": source_id,
+                "target_table": table_name,
+                "last_updated": now.isoformat(),
+                "row_count": row_count,
+                "status": status,
+                "error_message": error_msg
+            }]
+            
+            try:
+                # Ensure dataset exists before writing
+                self.bq_client.create_dataset(dataset_id, exists_ok=True)
+                # Write metadata
+                errors = self.bq_client.insert_rows_json(table_id, rows_to_insert)
+                if errors:
+                    logger.error(f"BQ Metadata Error: {errors}")
+            except Exception as e:
+                logger.error(f"Failed to update BQ metadata: {e}")
 
     def close(self):
         """Closes connections."""
