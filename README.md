@@ -1,13 +1,13 @@
-# 🏆 Gold Intelligence Framework (GIF)
+# 🏆 Gold Intelligence Framework (Hybrid-Cloud Edition)
 
 ## 1. Vision & Overview
-The **Gold Intelligence Framework** is an enterprise-grade market data platform designed to provide automated, API-driven insights into the global gold market. By eliminating manual data handling (Excel/CSV), the framework ensures a single source of truth for macro-economic drivers affecting gold valuation.
+The **Gold Intelligence Framework (GIF)** is an enterprise-grade market data platform designed for automated, API-driven insights into the global gold market. It features an **Environment-Aware** design, allowing seamless transitions between local development (DuckDB) and production cloud environments (BigQuery/GCS).
 
 ### Core Principles:
-*   **100% API-Driven:** All data is sourced programmatically via DBnomics.
-*   **Medallion Architecture:** Data flows through Bronze (Raw), Silver (Staged), and Gold (Business) layers.
-*   **Self-Documenting:** Comprehensive dbt documentation and automated pipeline logging.
-*   **Financial Rigor:** Implementation of Pearson correlation and weighted valuation indices.
+*   **100% API-Driven:** Automated sourcing from World Bank, IMF, FED, and ECB via DBnomics.
+*   **Hybrid-Cloud Architecture:** Single codebase for Local (DuckDB) and Cloud (GCS/BigQuery) operations.
+*   **Medallion Architecture:** Structured data flow through Bronze, Silver, and Gold layers.
+*   **Financial Rigor:** Advanced analytics including rolling Pearson correlations.
 
 ## 2. System Architecture
 
@@ -20,59 +20,58 @@ graph TD
         ECB[ECB: FX EUR/USD]
     end
 
-    subgraph "Bronze Layer (Ingestion)"
-        IM[ingest_manager.py] --> DB[(DuckDB: bronze_schema)]
+    subgraph "Hybrid Bronze Layer"
+        IM[GoldIngestor] -- Local --> DB[(DuckDB)]
+        IM -- Cloud --> GCS[Google Cloud Storage]
     end
 
-    subgraph "Silver Layer (Staging)"
-        DB --> STG[dbt Staging Models]
+    subgraph "Warehouse Transformation (dbt)"
+        DB -- dev target --> STG[Silver: Staging]
+        GCS -- prod target --> STG
+        STG --> GOLD[Gold: Marts]
     end
 
-    subgraph "Intermediate Layer (Analytics)"
-        STG --> INT[int_gold_correlation]
-    end
-
-    subgraph "Gold Layer (Marts)"
-        INT --> MS[fct_market_summary]
-        MS --> VI[fct_gold_valuation_index]
+    subgraph "Orchestration"
+        AF[Apache Airflow: gold_pipeline_master]
     end
 
     WB & IMF & FED & ECB --> IM
+    AF --> IM
+    AF --> STG
 ```
 
 ## 3. Data Pipeline & Stack
 
-*   **Ingestion:** Python (`dbnomics`, `pandas`, `duckdb`)
-*   **Storage:** DuckDB (Local analytical database)
-*   **Transformation:** dbt (data build tool)
-*   **Orchestration:** `main.py` (Custom Python Orchestrator)
-*   **Logging:** Centralized logs in `/logs`
+*   **Ingestion:** Python (`GoldIngestor` class) with support for DuckDB and GCS.
+*   **Warehouse:** DuckDB (Local) / BigQuery (Cloud).
+*   **Transformation:** dbt (data build tool) with `dev` and `prod` profiles.
+*   **Orchestration:** Apache Airflow DAG (`gold_pipeline_master`).
+*   **Dependency Management:** `uv` for Python, `Docker` for runtime parity.
 
 ## 4. Key Metrics & Logic
 
-### A. Pearson Correlation
-Calculated in `int_gold_correlation.sql` using a rolling 12-month window:
-$$r = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum (x_i - \bar{x})^2 \sum (y_i - \bar{y})^2}}$$
-Used to measure the relationship between real interest rates and gold prices.
+### A. Rolling Pearson Correlation (`fct_gold_correlation`)
+Calculated using a 12-month window to measure the relationship between real interest rates and gold prices.
+*   **Formula:** Native SQL `CORR()` window function.
+*   **Significance:** High negative correlation indicates gold's role as a safe-haven asset.
 
-### B. Gold Valuation Index
-A weighted score (0-100) combining:
-*   **40% Global Reserves:** Central Bank accumulation status.
-*   **30% EUR Strength:** Impact of currency fluctuations.
-*   **30% Safe Haven Status:** Inverse of correlation with interest rates.
+### B. Gold Valuation Index (`fct_gold_valuation_index`)
+A weighted score (0-100) based on macro-economic drivers:
+*   **40% Global Reserves:** Central Bank accumulation trend.
+*   **30% EUR Strength:** Inverse USD correlation.
+*   **30% Safe Haven Status:** Inverse correlation with 10Y Real Rates.
 
-## 5. Getting Started
+## 5. Environment Setup
 
-### Prerequisites:
-```bash
-pip install dbnomics duckdb dbt-duckdb pandas
-```
+### Local Mode (Default):
+1.  Ensure `ENVIRONMENT=local` in `.env`.
+2.  Run ingestion: `python ingest_manager.py`
+3.  Run dbt: `cd gold_dbt && dbt run --target dev`
 
-### Execution:
-To run the full pipeline (Ingest -> Transform -> Test):
-```bash
-python main.py
-```
+### Production Mode (Cloud):
+1.  Set `ENVIRONMENT=prod`, `GCS_BUCKET_NAME`, and GCP credentials in `.env`.
+2.  Deploy Airflow DAG from `dags/gold_pipeline_master.py`.
+3.  dbt will use the `prod` target (BigQuery).
 
 ## 6. Project Structure
 ```text
@@ -80,15 +79,14 @@ python main.py
 ├── gold_dbt/              # dbt Project
 │   ├── models/
 │   │   ├── staging/       # Silver Layer: Normalization
-│   │   ├── intermediate/  # Analytics: Correlation logic
-│   │   └── marts/         # Gold Layer: Business Metrics
-│   └── data/              # DuckDB database file
-├── ingest_manager.py      # Python Ingestion Framework
-├── main.py                # Pipeline Orchestrator
+│   │   └── marts/         # Gold Layer: Business Metrics & Correlations
+│   └── profiles.yml       # Multi-target connection config
+├── ingest_manager.py      # Environment-aware Ingestion Framework (GoldIngestor)
+├── dags/                  # Airflow Orchestration
 └── logs/                  # Pipeline & Ingestion logs
 ```
 
 ---
-**Standard:** Professional Enterprise Documentation
+**Standard:** Enterprise Specification 2.0
 **Author:** Gemini CLI
-**Version:** 1.0.0
+**Version:** 1.1.0

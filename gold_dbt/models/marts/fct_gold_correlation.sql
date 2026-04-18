@@ -1,8 +1,10 @@
 /*
-    MODEL: int_gold_correlation
+    MODEL: fct_gold_correlation
+    LAYER: Gold (Marts)
     DESCRIPTION: 
     Calculates the rolling 12-month Pearson correlation between Gold Prices and 10Y Real Interest Rates.
-    Mathematical Logic: Rolling window correlation using DuckDB's native CORR() function.
+    This is a key macro-economic indicator for gold valuation.
+    Mathematical Logic: Rolling window correlation using native CORR() function.
 */
 
 {{ config(materialized='table') }}

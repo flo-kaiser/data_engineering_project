@@ -1,10 +1,12 @@
+import os
 import pandas as pd
 import dbnomics
 import duckdb
 import logging
-import os
+import io
 from datetime import datetime
 from typing import Dict, Optional
+from google.cloud import storage
 
 # --- Configuration & Setup ---
 LOG_DIR = 'logs'
@@ -18,35 +20,38 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-logger = logging.getLogger("DBnomicsIngestor")
+logger = logging.getLogger("GoldIngestor")
 
-class DBnomicsIngestor:
+class GoldIngestor:
     """
-    Enterprise-grade framework for ingesting market data from DBnomics into DuckDB.
-    
-    This class handles the connection to DuckDB, schema creation, metadata tracking,
-    and idempotent ingestion of time-series data.
+    Environment-aware framework for ingesting market data from DBnomics.
+    Supports local (DuckDB) and Cloud (GCS/BigQuery) targets.
     
     Attributes:
-        db_path (str): File path to the DuckDB database.
-        con (duckdb.DuckDBPyConnection): Active connection to DuckDB.
+        env (str): 'local' or 'prod' controlled via ENVIRONMENT env var.
+        db_path (str): File path to the DuckDB database (local only).
+        bucket_name (str): GCS bucket name (prod only).
     """
 
-    def __init__(self, db_path: str = 'gold_dbt/data/gold_market.duckdb'):
+    def __init__(self):
         """
-        Initializes the Ingestor and ensures the environment is ready.
+        Initializes the Ingestor based on environment variables.
+        """
+        self.env = os.getenv('ENVIRONMENT', 'local').lower()
+        self.db_path = os.getenv('DUCKDB_PATH', 'gold_dbt/data/gold_market.duckdb')
+        self.bucket_name = os.getenv('GCS_BUCKET_NAME')
         
-        Args:
-            db_path: Path to the DuckDB database file.
-        """
-        self.db_path = db_path
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        self.con = duckdb.connect(self.db_path)
-        self._setup_database()
-        logger.info(f"Initialized DBnomicsIngestor with database: {self.db_path}")
+        if self.env == 'local':
+            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+            self.con = duckdb.connect(self.db_path)
+            self._setup_duckdb()
+            logger.info(f"Initialized GoldIngestor in LOCAL mode (DuckDB: {self.db_path})")
+        else:
+            self.storage_client = storage.Client()
+            logger.info(f"Initialized GoldIngestor in PROD mode (GCS: {self.bucket_name})")
 
-    def _setup_database(self):
-        """Creates required schemas and metadata tracking tables."""
+    def _setup_duckdb(self):
+        """Creates required schemas and metadata tracking tables for DuckDB."""
         self.con.execute("CREATE SCHEMA IF NOT EXISTS bronze")
         self.con.execute("""
             CREATE TABLE IF NOT EXISTS bronze.ingestion_metadata (
@@ -61,22 +66,15 @@ class DBnomicsIngestor:
 
     def fetch_and_ingest(self, series_id: str, table_name: str):
         """
-        Fetches a series from DBnomics and performs an idempotent write to DuckDB.
+        Fetches a series from DBnomics and performs an idempotent write.
         
         Args:
-            series_id (str): The full DBnomics series identifier (Provider/Dataset/Series).
-            table_name (str): The name of the target table within the 'bronze' schema.
-            
-        Returns:
-            None
-            
-        Raises:
-            Exception: If ingestion fails, details are logged to both file and metadata table.
+            series_id (str): The full DBnomics series identifier.
+            table_name (str): The name of the target table/object.
         """
-        logger.info(f"🚀 Starting ingestion: {series_id} -> bronze.{table_name}")
+        logger.info(f"🚀 Starting ingestion: {series_id} -> {table_name} ({self.env})")
         
         try:
-            # Fetch data from DBnomics
             df = dbnomics.fetch_series(series_id)
             
             if df is None or df.empty:
@@ -88,34 +86,43 @@ class DBnomicsIngestor:
             df_cleaned['series_id'] = series_id
             df_cleaned['ingested_at'] = datetime.now()
 
-            # Truly Idempotent Ingestion: 
-            # 1. Create table if not exists
-            # 2. Delete existing periods that we are about to re-insert (Upsert logic)
-            # 3. Insert new data
-            self.con.register('tmp_df', df_cleaned)
+            if self.env == 'local':
+                self._ingest_to_duckdb(df_cleaned, table_name, series_id)
+            else:
+                self._ingest_to_gcs(df_cleaned, table_name)
             
-            self.con.execute(f"CREATE TABLE IF NOT EXISTS bronze.{table_name} AS SELECT * FROM tmp_df WHERE 1=0")
-            
-            # Perform Upsert by deleting existing overlapping periods
-            self.con.execute(f"""
-                DELETE FROM bronze.{table_name} 
-                WHERE period IN (SELECT period FROM tmp_df)
-            """)
-            
-            self.con.execute(f"INSERT INTO bronze.{table_name} SELECT * FROM tmp_df")
-            self.con.unregister('tmp_df')
-            
-            row_count = len(df_cleaned)
-            self._update_metadata(series_id, table_name, row_count, "SUCCESS")
-            logger.info(f"✅ Successfully Upserted {row_count} rows into bronze.{table_name}")
+            logger.info(f"✅ Successfully ingested {len(df_cleaned)} rows for {table_name}")
 
         except Exception as e:
             error_msg = str(e)
             logger.error(f"❌ Ingestion failed for {series_id}: {error_msg}")
-            self._update_metadata(series_id, table_name, 0, "FAILED", error_msg)
+            if self.env == 'local':
+                self._update_metadata(series_id, table_name, 0, "FAILED", error_msg)
+
+    def _ingest_to_duckdb(self, df: pd.DataFrame, table_name: str, series_id: str):
+        """Local DuckDB ingestion with Upsert logic."""
+        self.con.register('tmp_df', df)
+        self.con.execute(f"CREATE TABLE IF NOT EXISTS bronze.{table_name} AS SELECT * FROM tmp_df WHERE 1=0")
+        self.con.execute(f"DELETE FROM bronze.{table_name} WHERE period IN (SELECT period FROM tmp_df)")
+        self.con.execute(f"INSERT INTO bronze.{table_name} SELECT * FROM tmp_df")
+        self.con.unregister('tmp_df')
+        self._update_metadata(series_id, table_name, len(df), "SUCCESS")
+
+    def _ingest_to_gcs(self, df: pd.DataFrame, table_name: str):
+        """Cloud GCS ingestion as Parquet."""
+        if not self.bucket_name:
+            raise ValueError("GCS_BUCKET_NAME must be set for PROD environment.")
+        
+        bucket = self.storage_client.bucket(self.bucket_name)
+        blob = bucket.blob(f"bronze/{table_name}.parquet")
+        
+        # Buffer to hold parquet data
+        buffer = io.BytesIO()
+        df.to_parquet(buffer, index=False)
+        blob.upload_from_string(buffer.getvalue(), content_type='application/octet-stream')
 
     def _update_metadata(self, series_id: str, table_name: str, row_count: int, status: str, error_msg: Optional[str] = None):
-        """Updates the internal metadata table with the status of the last run."""
+        """Updates the internal metadata table in DuckDB."""
         now = datetime.now()
         self.con.execute("""
             INSERT INTO bronze.ingestion_metadata 
@@ -124,14 +131,11 @@ class DBnomicsIngestor:
         """, [series_id, table_name, now, row_count, status, error_msg])
 
     def close(self):
-        """Releases the database connection."""
-        if self.con:
+        """Closes connections."""
+        if self.env == 'local' and hasattr(self, 'con'):
             self.con.close()
-            logger.info("Database connection closed.")
 
 if __name__ == "__main__":
-    # Define the core API series for the Gold Intelligence Framework
-    # Note: We use FED/H15/RIFLGFCY10_XII_N.M as the benchmark 10Y interest rate.
     series_map = {
         'WB/commodity_prices/FGOLD-1W': 'gold_prices_api',
         'IMF/IFS/M.W00.RAFAGOLDV_OZT': 'gold_reserves_api',
@@ -139,7 +143,7 @@ if __name__ == "__main__":
         'ECB/EXR/M.USD.EUR.SP00.A': 'fx_usd_eur_api'
     }
     
-    ingestor = DBnomicsIngestor()
+    ingestor = GoldIngestor()
     try:
         for sid, table in series_map.items():
             ingestor.fetch_and_ingest(sid, table)

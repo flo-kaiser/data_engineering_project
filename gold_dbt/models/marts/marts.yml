@@ -41,3 +41,20 @@ models:
         description: "Weighted score (0-100) based on macro-economic drivers."
         tests:
           - not_null
+
+  - name: fct_gold_correlation
+    description: >
+      Calculates the rolling 12-month Pearson correlation between Gold Prices and 10Y Real Interest Rates.
+      This model helps identify periods where gold behaves as a classic safe-haven asset (typically exhibiting high negative correlation with real rates).
+    columns:
+      - name: month
+        description: "The month of observation."
+        tests:
+          - unique
+          - not_null
+      - name: avg_price
+        description: "Monthly average gold price (USD/oz)."
+      - name: avg_rate
+        description: "Monthly average 10Y Real Interest Rate (TIPS)."
+      - name: rolling_corr_12m
+        description: "Rolling 12-month Pearson correlation coefficient."
