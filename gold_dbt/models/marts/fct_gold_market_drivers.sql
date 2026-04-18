@@ -1,3 +1,12 @@
+/*
+    MODEL: fct_gold_market_drivers
+    DESCRIPTION: 
+    Gold Layer - Aggregates various market drivers (ETF Flows, DXY, Yields) 
+    against Gold Prices for monthly correlation analysis.
+*/
+
+{{ config(materialized='table') }}
+
 with prices as (
     select
         date_trunc('month', price_date) as market_month,

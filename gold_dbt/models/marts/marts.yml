@@ -58,3 +58,21 @@ models:
         description: "Monthly average 10Y Real Interest Rate (TIPS)."
       - name: rolling_corr_12m
         description: "Rolling 12-month Pearson correlation coefficient."
+
+  - name: fct_gold_market_drivers
+    description: "Monthly aggregation of macro drivers (ETF, DXY, Yields) vs Gold Price."
+    columns:
+      - name: market_month
+        description: "Month of observation."
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_mining_vs_price
+    description: "Yearly comparison of gold mining production volumes and average market prices."
+    columns:
+      - name: market_year
+        description: "Year of observation."
+        tests:
+          - unique
+          - not_null

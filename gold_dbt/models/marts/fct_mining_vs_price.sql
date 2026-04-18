@@ -1,3 +1,12 @@
+/*
+    MODEL: fct_mining_vs_price
+    DESCRIPTION: 
+    Gold Layer - Yearly comparison between global gold mining production volumes 
+    and average market prices.
+*/
+
+{{ config(materialized='table') }}
+
 with yearly_prices as (
     select
         date_part('year', price_date) as market_year,
