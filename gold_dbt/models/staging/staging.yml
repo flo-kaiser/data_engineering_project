@@ -2,24 +2,57 @@ version: 2
 
 models:
   - name: stg_gold_prices
-    description: "Staged gold price data with ton conversion."
+    description: "Staged gold price data with ton conversion (World Bank)."
     columns:
       - name: price_date
+        description: "Observation date."
         tests:
           - not_null
+          - unique
       - name: price_usd_per_oz
+        description: "Gold price in USD per Fine Ounce."
         tests:
           - dbt_utils.accepted_range:
               arguments:
                 min_value: 0
       - name: price_usd_per_ton
-        description: "Standardized metric: price per metric ton."
+        description: "Standardized metric: price per metric ton (1t = 32150.7 oz)."
 
   - name: stg_real_rates
-    description: "Staged 10Y real interest rates (TIPS yields)."
+    description: "Staged 10Y real interest rates (FED Proxy)."
     columns:
       - name: observation_date
+        description: "Observation date."
         tests:
           - not_null
+          - unique
       - name: real_rate_10y
-        description: "The 10-year inflation-indexed yield."
+        description: "The 10-year benchmark interest rate."
+
+  - name: stg_gold_reserves_api
+    description: "Staged official gold reserves (IMF)."
+    columns:
+      - name: observation_date
+        description: "Observation date."
+        tests:
+          - not_null
+      - name: gold_reserves_tonnes
+        description: "Official reserves in metric tonnes."
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+
+  - name: stg_fx_usd_eur_api
+    description: "Staged FX rates USD per EUR (ECB)."
+    columns:
+      - name: observation_date
+        description: "Observation date."
+        tests:
+          - not_null
+      - name: usd_per_eur
+        description: "Exchange rate: 1 EUR in USD."
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0

@@ -64,14 +64,16 @@ class DBnomicsIngestor:
         Fetches a series from DBnomics and performs an idempotent write to DuckDB.
         
         Args:
-            series_id: The full DBnomics series identifier (Provider/Dataset/Series).
-            table_name: The name of the target table within the 'bronze' schema.
+            series_id (str): The full DBnomics series identifier (Provider/Dataset/Series).
+            table_name (str): The name of the target table within the 'bronze' schema.
+            
+        Returns:
+            None
             
         Raises:
             Exception: If ingestion fails, details are logged to both file and metadata table.
         """
         logger.info(f"🚀 Starting ingestion: {series_id} -> bronze.{table_name}")
-        start_time = datetime.now()
         
         try:
             # Fetch data from DBnomics
@@ -81,22 +83,31 @@ class DBnomicsIngestor:
                 raise ValueError(f"Series {series_id} returned no data.")
 
             # Clean and prepare dataframe
-            # We standardize on 'period', 'value', 'series_id', and 'ingested_at'
             df_cleaned = df[['period', 'value']].copy()
             df_cleaned['period'] = pd.to_datetime(df_cleaned['period']).dt.date
             df_cleaned['series_id'] = series_id
             df_cleaned['ingested_at'] = datetime.now()
 
-            # Idempotent Write: Use CREATE OR REPLACE for the raw bronze layer
-            # This ensures we have a clean, deduplicated copy of the latest API state.
-            # In a production system, this could be changed to an UPSERT logic.
+            # Truly Idempotent Ingestion: 
+            # 1. Create table if not exists
+            # 2. Delete existing periods that we are about to re-insert (Upsert logic)
+            # 3. Insert new data
             self.con.register('tmp_df', df_cleaned)
-            self.con.execute(f"CREATE OR REPLACE TABLE bronze.{table_name} AS SELECT * FROM tmp_df")
+            
+            self.con.execute(f"CREATE TABLE IF NOT EXISTS bronze.{table_name} AS SELECT * FROM tmp_df WHERE 1=0")
+            
+            # Perform Upsert by deleting existing overlapping periods
+            self.con.execute(f"""
+                DELETE FROM bronze.{table_name} 
+                WHERE period IN (SELECT period FROM tmp_df)
+            """)
+            
+            self.con.execute(f"INSERT INTO bronze.{table_name} SELECT * FROM tmp_df")
             self.con.unregister('tmp_df')
             
             row_count = len(df_cleaned)
             self._update_metadata(series_id, table_name, row_count, "SUCCESS")
-            logger.info(f"✅ Successfully ingested {row_count} rows into bronze.{table_name}")
+            logger.info(f"✅ Successfully Upserted {row_count} rows into bronze.{table_name}")
 
         except Exception as e:
             error_msg = str(e)
