@@ -11,6 +11,7 @@ x-airflow-common:
     - GCP_DATASET=${GCP_DATASET}
     - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
     - GCP_KEYFILE_PATH=/app/auth/service_account.json
+    - AIRFLOW_HOME=/usr/local/airflow
   volumes:
     - .:/app
     - ./dags:/usr/local/airflow/dags
@@ -19,14 +20,12 @@ services:
   # Airflow Orchestrator
   airflow:
     <<: *airflow-common
-    environment:
-      - ENVIRONMENT=${ENVIRONMENT:-local}
-      - DUCKDB_PATH=/app/data/gold_market.duckdb
-      - DBT_TARGET=${DBT_TARGET:-dev}
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - _AIRFLOW_WWW_USER_USERNAME=admin
-      - _AIRFLOW_WWW_USER_PASSWORD=admin123
-    command: uv run airflow standalone
+    # Wir schreiben das Passwort direkt in die von standalone genutzte Datei
+    command: >
+      bash -c "
+      mkdir -p /usr/local/airflow &&
+      echo 'admin123' > /usr/local/airflow/standalone_admin_password.txt &&
+      uv run airflow standalone"
     ports:
       - "8080:8080"
 
