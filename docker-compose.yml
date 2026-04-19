@@ -8,20 +8,22 @@ services:
       - "8501:8501"
     environment:
       - ENVIRONMENT=local
-      - DUCKDB_PATH=gold_dbt/data/gold_market.duckdb
+      - DUCKDB_PATH=/app/data/gold_market.duckdb
       - DBT_TARGET=dev
     volumes:
-      - .:/app
+      - gold_data:/app/data  # Named Volume für maximale Geschwindigkeit
     command: uv run streamlit run dashboard.py --server.port 8501 --server.address 0.0.0.0
 
-  # Ein optionaler Service, um die Pipeline manuell im Container zu starten
+  # Die Pipeline (Ingestion & dbt)
   pipeline:
     build: .
     environment:
       - ENVIRONMENT=local
-      - DUCKDB_PATH=gold_dbt/data/gold_market.duckdb
+      - DUCKDB_PATH=/app/data/gold_market.duckdb
       - DBT_TARGET=dev
     volumes:
-      - .:/app
-    # Dieses Kommando lässt den Container nach der Ingestion beenden
+      - gold_data:/app/data  # Gleiches Volume wie Dashboard
     command: uv run python main.py
+
+volumes:
+  gold_data: # Docker verwaltet diesen Speicher intern (sehr schnell)

@@ -21,6 +21,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Set work directory
 WORKDIR /app
 
+# Create required directories
+RUN mkdir -p /app/data /usr/local/airflow/dags
+
 # Copy project files
 COPY pyproject.toml .
 COPY uv.lock .
