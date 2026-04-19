@@ -79,9 +79,35 @@ For a fully isolated environment:
 .
 ├── gold_dbt/              # dbt Project (Transformation Logic)
 ├── data/bronze/           # Local Data Lake (Parquet Files)
-├── research/              # Exploration & Research Scripts
+├── research/              # API Exploration & Research Scripts
 ├── Makefile               # Enterprise Command Center
 ├── docker-compose.yml     # Container Orchestration
 ├── main.py                # Pipeline Entrypoint
 └── ingest_manager.py      # Core Ingestion Engine
 ```
+
+## 7. Reproducibility Requirements
+
+To reproduce this framework from scratch, ensure the following requirements are met:
+
+### Software & Environment
+*   **Git:** For version control.
+*   **Docker & Docker Compose:** Required for containerized execution (Airflow/Dashboard).
+*   **Python 3.10+ & `uv`:** Recommended for local execution. `uv` handles all dependencies.
+
+### API Access (Zero Credentials Required)
+The framework is designed for maximum accessibility:
+*   **DBnomics (IMF, WB, FED, ECB):** Public institutional data. **No API key required.**
+*   **Yahoo Finance:** Market prices via `yfinance`. **No API key required.**
+
+### Configuration (`.env`)
+You must create a `.env` file in the root directory (refer to `.env.example`).
+*   For **Local Mode**: Set `ENVIRONMENT=local` and `DBT_TARGET=dev`.
+*   For **Cloud Mode**: Provide GCP credentials (Project ID, GCS Bucket, Service Account JSON path).
+
+### Google Cloud (Optional for Production)
+If deploying to GCP (BigQuery/GCS), you need:
+1.  An active **GCP Project**.
+2.  A **Service Account** with `BigQuery Admin` and `Storage Admin` roles.
+3.  A **Cloud Storage Bucket** for the Bronze data layer.
+
