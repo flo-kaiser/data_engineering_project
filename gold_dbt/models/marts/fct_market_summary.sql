@@ -5,7 +5,15 @@
     Aggregates Price, Reserves, FX-Rates and Correlation into a flat analytical table.
 */
 
-{{ config(materialized='table') }}
+{{ config(
+    materialized='table',
+    partition_by={
+      "field": "month",
+      "data_type": "timestamp",
+      "granularity": "month"
+    },
+    cluster_by=["month"]
+) }}
 
 WITH base_months AS (
     SELECT DISTINCT date_trunc('month', price_date) AS month
