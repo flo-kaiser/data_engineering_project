@@ -1,19 +1,38 @@
-# 🏆 Gold Intelligence Framework
+# 🏆 Gold Intelligence Framework (GIF)
+### *End-to-End Hybrid-Cloud Data Platform for Global Market Analysis*
 
-## 1. Vision & Overview
-The **Gold Intelligence Framework (GIF)** is an enterprise-grade market data platform designed for automated insights into the global gold market. It features an **Environment-Aware** design, allowing seamless transitions between local development (DuckDB) and production cloud environments (BigQuery/GCS).
+![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=for-the-badge&logo=duckdb&logoColor=black)
+![dbt](https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white)
+![Apache Airflow](https://img.shields.io/badge/Apache%20Airflow-017CEE?style=for-the-badge&logo=Apache%20Airflow&logoColor=white)
+![Google Cloud](https://img.shields.io/badge/Google_Cloud-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white)
+![Terraform](https://img.shields.io/badge/terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white)
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
-### Core Principles:
-*   **Hybrid-Cloud Architecture:** Single codebase for Local (DuckDB) and Cloud (GCS/BigQuery) operations.
-*   **Medallion Architecture:** Structured data flow through Bronze, Silver, and Gold layers.
-*   **Financial Rigor:** Advanced analytics including rolling Pearson correlations and macro-valuation models.
-*   **Modern Data Stack:** Powered by `uv`, `dbt`, `DuckDB`, and `Streamlit`.
+## 1. Problem Statement & Objective
+Analyzing the global gold market typically requires aggregating fragmented data from various institutional sources (IMF, World Bank, FED, ECB) and market providers (Yahoo Finance). **The core challenge** for financial analysts is:
+*   **Manual Fragmentation:** Data exists in different frequencies (daily vs. monthly) and units (ounces vs. tonnes).
+*   **Metric Complexity:** Calculating advanced indicators like 12-month rolling Pearson correlations between real interest rates and gold prices is error-prone in spreadsheets.
+*   **Environment Parity:** Moving from a local research environment to a scalable cloud production stack often requires significant code changes.
 
-## 2. System Architecture
+**The Objective**: To build an automated, environment-aware data platform that ingests, cleans, and transforms raw institutional data into a validated **Gold Analytics Mart**, enabling clear visibility into market drivers and valuation regimes.
+
+---
+
+## 2. Architecture & Tech Stack
+
+This project implements a **Modern Data Stack** with a focus on **Environment Parity**:
+
+*   **Infrastructure (IaC):** [Terraform](https://www.terraform.io/) for GCP (GCS & BigQuery) + [Docker](https://www.docker.com/) for local orchestration.
+*   **Workflow Orchestration:** [Apache Airflow](https://airflow.apache.org/) managing the Medallion pipeline.
+*   **Data Warehouse:** [DuckDB](https://duckdb.org/) (Local Dev) and [Google BigQuery](https://cloud.google.com/bigquery) (Production).
+*   **Transformation Layer:** [dbt](https://www.getdbt.com/) implementing a unified **Medallion Architecture** (Bronze, Silver, Gold).
+*   **Visual Analytics:** [Streamlit](https://streamlit.io/) for an interactive, data-driven dashboard.
 
 ```mermaid
 graph TD
-    subgraph "External Sources"
+    subgraph "External Sources (API-Driven)"
         WB[World Bank]
         IMF[IMF]
         FED[Federal Reserve]
@@ -40,74 +59,71 @@ graph TD
     WB & IMF & FED & ECB & YF --> IM
 ```
 
-## 3. Data Pipeline & Stack
+---
 
-*   **Ingestion:** Python (`GoldIngestor`) - Environment-aware, idempotent upserts.
-*   **Warehouse:** DuckDB (Local) / BigQuery (Cloud Production).
-*   **Transformation:** dbt (data build tool) - handles normalization and complex math.
-*   **Orchestration:** Integrated Python Orchestrator (`main.py`) or Airflow DAG.
-*   **Dependency Management:** `uv` for Python environment management.
+## 3. Engineering Excellence
 
-## 4. Key Metrics & Analysis
+### 🛠️ Hybrid-Environment Design
+The framework is designed to switch between two worlds via `.env` variables without code changes:
+*   **Local Mode:** Uses DuckDB for 0€ cost, fast iteration, and offline development.
+*   **Cloud Mode:** Uses GCS for the Bronze Layer and BigQuery for analytical processing.
 
-### A. Rolling Pearson Correlation (`fct_gold_correlation`)
-Measures the 12-month rolling relationship between **10Y Real Interest Rates** and **Gold Prices**.
-*   **Significance:** Historically, gold has a strong negative correlation with real rates.
+### 📊 Data Warehouse Optimization
+*   **Materialization Strategy:** Staging models are kept as `views` for data freshness; analytical Marts are materialized as `tables` for sub-second dashboard performance.
+*   **Idempotent Ingestion:** The Python-based `GoldIngestor` follows an "Upsert" pattern (Delete before Insert) to prevent duplicates.
 
-### B. Gold Valuation Index (`fct_gold_valuation_index`)
-A composite score (0-100) determining if gold is undervalued or overvalued based on:
-*   **Central Bank Activity:** Accumulation trends.
-*   **Currency Drivers:** Strength of the USD (DXY).
-*   **Macro Environment:** Interest rate trends and safe-haven demand.
+### ✅ Data Integrity & Trust
+We prioritize data reliability with **automated dbt tests**:
+*   **Uniqueness:** Ensuring no duplicate records in price and reserve time-series.
+*   **Range Validations:** Validating that rolling correlations remain within the mathematical bounds of `[-1, 1]`.
+*   **Completeness:** Ensuring zero null values in critical columns for the "Valuation Index".
+
+---
+
+## 4. Key Analytical Insights
+The platform doesn't just show charts; it computes high-impact financial metrics:
+
+*   **Rolling Pearson Correlation:** Measures the 12-month relationship between **10Y Real Interest Rates** and Gold.
+*   **Gold Valuation Index:** A weighted composite score (0-100) combining Central Bank accumulation (40%), Currency strength (30%), and Safe Haven status (30%).
+
+---
 
 ## 5. Quickstart Guide
 
 ### Local Installation:
-This project uses a `Makefile` for streamlined operations.
-1.  **Install:** `make install`
-2.  **Initialize Pipeline:** `make pipeline`
-3.  **Launch Dashboard:** `make dashboard` (Default: http://localhost:8501)
+1.  **Install Environment:** `make install` (uses `uv` for deterministic dependencies).
+2.  **Run Pipeline:** `make pipeline` (runs Ingestion -> dbt run -> dbt test).
+3.  **Launch Dashboard:** `make dashboard` (Default: http://localhost:8501).
 
 ### Docker Deployment:
-For a fully isolated environment:
-1.  **Build:** `docker-compose build`
-2.  **Run Pipeline:** `docker-compose run pipeline`
-3.  **Start Dashboard:** `docker-compose up dashboard`
+```bash
+docker-compose build
+docker-compose up -d airflow
+# Retrieve the generated admin password:
+make get-airflow-pass
+```
+Access Airflow at http://localhost:8080.
 
-## 6. Project Structure
-```text
-.
-├── gold_dbt/              # dbt Project (Transformation Logic)
-├── data/bronze/           # Local Data Lake (Parquet Files)
-├── research/              # API Exploration & Research Scripts
-├── Makefile               # Enterprise Command Center
-├── docker-compose.yml     # Container Orchestration
-├── main.py                # Pipeline Entrypoint
-└── ingest_manager.py      # Core Ingestion Engine
+### Terraform (Infrastructure as Code):
+Navigate to `infrastructure/terraform/` and run:
+```bash
+terraform init
+terraform apply -var="project_id=YOUR_PROJECT_ID"
 ```
 
-## 7. Reproducibility Requirements
+---
 
-To reproduce this framework from scratch, ensure the following requirements are met:
+## 👨‍💻 Project Structure
+```text
+.
+├── gold_dbt/              # dbt Project (SQL Transformation Logic)
+├── dags/                  # Airflow DAGs (Workflow Orchestration)
+├── infrastructure/        # Terraform (GCP) & Configuration
+├── data/bronze/           # Local Data Lake (Parquet Files)
+├── dashboard.py           # Streamlit Analytical Interface
+├── ingest_manager.py      # Environment-Aware Ingestion Engine
+└── Makefile               # Enterprise Command Center
+```
 
-### Software & Environment
-*   **Git:** For version control.
-*   **Docker & Docker Compose:** Required for containerized execution (Airflow/Dashboard).
-*   **Python 3.10+ & `uv`:** Recommended for local execution. `uv` handles all dependencies.
-
-### API Access (Zero Credentials Required)
-The framework is designed for maximum accessibility:
-*   **DBnomics (IMF, WB, FED, ECB):** Public institutional data. **No API key required.**
-*   **Yahoo Finance:** Market prices via `yfinance`. **No API key required.**
-
-### Configuration (`.env`)
-You must create a `.env` file in the root directory (refer to `.env.example`).
-*   For **Local Mode**: Set `ENVIRONMENT=local` and `DBT_TARGET=dev`.
-*   For **Cloud Mode**: Provide GCP credentials (Project ID, GCS Bucket, Service Account JSON path).
-
-### Google Cloud (Optional for Production)
-If deploying to GCP (BigQuery/GCS), you need:
-1.  An active **GCP Project**.
-2.  A **Service Account** with `BigQuery Admin` and `Storage Admin` roles.
-3.  A **Cloud Storage Bucket** for the Bronze data layer.
-
+---
+*Developed with Gemini CLI | 2026*
