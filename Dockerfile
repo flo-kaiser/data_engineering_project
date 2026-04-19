@@ -5,7 +5,10 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/usr/local/venv \
-    AIRFLOW_HOME=/usr/local/airflow
+    AIRFLOW_HOME=/usr/local/airflow \
+    DUCKDB_PATH=/app/data/gold_market.duckdb \
+    DBT_TARGET=dev \
+    ENVIRONMENT=local
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,14 +34,16 @@ COPY uv.lock .
 # Install dependencies using uv
 RUN uv sync --no-dev
 
-# Create Airflow directories
-RUN mkdir -p ${AIRFLOW_HOME}/dags ${AIRFLOW_HOME}/logs ${AIRFLOW_HOME}/plugins
-
-# Copy the rest of the application
+# Copy the application code
 COPY . .
 
-# Expose ports for Airflow (8080) and Streamlit (8501)
-EXPOSE 8080 8501
+# --- Cloud Run Optimization: Pre-build Data ---
+# This runs the ingestion and transformation during build time
+# so the image is "ready-to-serve" instantly.
+RUN uv run python main.py
 
-# Default command
-CMD ["uv", "run", "airflow", "standalone"]
+# Expose port for Streamlit
+EXPOSE 8501
+
+# Default command: Start the Dashboard (Standard for Cloud Run)
+CMD ["uv", "run", "streamlit", "run", "dashboard.py", "--server.port", "8501", "--server.address", "0.0.0.0"]

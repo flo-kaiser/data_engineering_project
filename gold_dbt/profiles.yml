@@ -3,7 +3,7 @@ gold_dbt:
   outputs:
     dev:
       type: duckdb
-      path: data/gold_market.duckdb
+      path: "{{ env_var('DUCKDB_PATH', 'data/gold_market.duckdb') }}"
       schema: main
     prod:
       type: bigquery
