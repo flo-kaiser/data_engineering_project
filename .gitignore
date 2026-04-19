@@ -214,3 +214,13 @@ xls/
 *.duckdb
 *.parquet
 GEMINI.md
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfvars.json
+tfplan
+*.tfplan
+.terraform.lock.hcl
