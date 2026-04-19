@@ -24,13 +24,17 @@ dashboard:
 
 docs:
 	./generate_docs.sh
-	cd gold_dbt && uv run dbt docs serve --port 8081
+	cd gold_dbt && uv run dbt docs serve --port 8082
 
 docker-up:
 	docker-compose up -d
 
 docker-down:
 	docker-compose down
+
+get-airflow-pass:
+	@echo "🔑 Airflow Admin Password:"
+	@docker exec $$(docker ps -qf "name=airflow") cat /usr/local/airflow/standalone_admin_password.txt
 
 clean:
 	rm -rf logs/*.log

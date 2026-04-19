@@ -12,31 +12,49 @@ x-airflow-common:
     - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
     - GCP_KEYFILE_PATH=/app/auth/service_account.json
     - AIRFLOW_HOME=/usr/local/airflow
+    - AIRFLOW__CORE__FERNET_KEY=fS3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_M=
+    # Airflow 3 nutzt jetzt [api] secret_key statt [webserver]
+    - AIRFLOW__API__SECRET_KEY=stabile_geheimnis_taste_123
+    - AIRFLOW_STANDALONE_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
+    # To set the initial user, standalone mode uses standalone_admin_password.txt or we can use CLI.
+    # For many images, we can set the default login like this:
+    - _AIRFLOW_WWW_USER_USERNAME=${AIRFLOW_USERNAME:-admin}
+    - _AIRFLOW_WWW_USER_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
   volumes:
     - .:/app
     - ./dags:/usr/local/airflow/dags
+    - airflow_data:/usr/local/airflow
 
 services:
-  # Airflow Orchestrator
   airflow:
     <<: *airflow-common
-    # Wir schreiben das Passwort direkt in die von standalone genutzte Datei
     command: >
       bash -c "
-      mkdir -p /usr/local/airflow &&
-      echo 'admin123' > /usr/local/airflow/standalone_admin_password.txt &&
+      echo \"${AIRFLOW_PASSWORD:-admin123}\" > /usr/local/airflow/standalone_admin_password.txt &&
       uv run airflow standalone"
     ports:
       - "8080:8080"
 
-  # Dashboard
   dashboard:
     <<: *airflow-common
     ports:
       - "8501:8501"
     command: uv run streamlit run dashboard.py --server.port 8501 --server.address 0.0.0.0
 
-  # Pipeline (Manual execution)
   pipeline:
     <<: *airflow-common
     command: uv run python main.py
+
+  dbt_docs:
+    <<: *airflow-common
+    ports:
+      - "8082:8082"
+    command: >
+      bash -c "
+      cd gold_dbt &&
+      uv run dbt docs generate &&
+      uv run dbt docs serve --port 8082"
+
+volumes:
+  gold_data:
+  airflow_data:
