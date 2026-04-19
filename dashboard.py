@@ -33,7 +33,11 @@ st.markdown("""
 def load_data():
     con = duckdb.connect('gold_dbt/data/gold_market.duckdb')
     
-    # Load Market Summary
+    # Load Daily Gold Prices for higher resolution
+    df_daily = con.execute("SELECT * FROM main.stg_gold_prices ORDER BY price_date ASC").df()
+    df_daily['price_date'] = pd.to_datetime(df_daily['price_date'])
+
+    # Load Market Summary (Monthly)
     df_summary = con.execute("SELECT * FROM main.fct_market_summary ORDER BY month ASC").df()
     df_summary['month'] = pd.to_datetime(df_summary['month'])
     
@@ -49,19 +53,19 @@ def load_data():
     df_mining = con.execute("SELECT * FROM main.fct_mining_vs_price ORDER BY market_year ASC").df()
     
     con.close()
-    return df_summary, df_valuation, df_drivers, df_mining
+    return df_daily, df_summary, df_valuation, df_drivers, df_mining
 
 try:
-    df_summary, df_valuation, df_drivers, df_mining = load_data()
+    df_daily, df_summary, df_valuation, df_drivers, df_mining = load_data()
     
     # --- Sidebar ---
     st.sidebar.title("🏆 Gold Intelligence")
     st.sidebar.markdown("Enterprise Market Framework")
     st.sidebar.divider()
     
-    # Date Filter
-    min_date = df_summary['month'].min().date()
-    max_date = df_summary['month'].max().date()
+    # Date Filter - Now using daily resolution for the max date
+    min_date = df_daily['price_date'].min().date()
+    max_date = df_daily['price_date'].max().date()
     
     start_date, end_date = st.sidebar.slider(
         "Select Time Period",
@@ -71,6 +75,11 @@ try:
     )
     
     # Apply Filtering
+    df_daily_filtered = df_daily[
+        (df_daily['price_date'].dt.date >= start_date) & 
+        (df_daily['price_date'].dt.date <= end_date)
+    ]
+
     df_filtered = df_summary[
         (df_summary['month'].dt.date >= start_date) & 
         (df_summary['month'].dt.date <= end_date)
@@ -87,32 +96,39 @@ try:
     tab1, tab2, tab3 = st.tabs(["📊 Market Overview", "📈 Macro Drivers", "⚒️ Supply & Demand"])
 
     with tab1:
-        # Top Metrics - Use latest row that HAS data to avoid NaN
-        df_metrics = df_summary.dropna(subset=['rolling_corr_12m', 'total_gold_reserves_tonnes'])
-        if not df_metrics.empty:
-            latest = df_metrics.iloc[-1]
-            prev = df_metrics.iloc[-2] if len(df_metrics) > 1 else latest
-            
-            price_delta = ((latest['avg_gold_price_usd'] - prev['avg_gold_price_usd']) / prev['avg_gold_price_usd']) * 100
-            
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Gold Price (USD/oz)", f"${latest['avg_gold_price_usd']:,.2f}", f"{price_delta:.1f}%")
-            col2.metric("12M Correlation", f"{latest['rolling_corr_12m']:.2f}")
-            
-            # Use latest available valuation
-            latest_val = df_valuation.dropna(subset=['valuation_score']).iloc[-1]
-            col3.metric("Valuation Score", f"{latest_val['valuation_score']:.1f}")
-            col4.metric("Global Reserves (t)", f"{latest['total_gold_reserves_tonnes']:,.0f}")
-        else:
-            st.warning("Insufficient complete data for top metrics.")
+        # Top Metrics - Decoupled to show latest available for EACH metric
+        col1, col2, col3, col4 = st.columns(4)
+        
+        # 1. Gold Price (Latest ACTUAL daily price)
+        latest_price_row = df_daily.iloc[-1]
+        # Previous price for delta (yesterday)
+        prev_price_row = df_daily.iloc[-2] if len(df_daily) > 1 else latest_price_row
+        price_delta = ((latest_price_row['price_usd_per_oz'] - prev_price_row['price_usd_per_oz']) / prev_price_row['price_usd_per_oz']) * 100
+        col1.metric("Gold Price (Spot/oz)", f"${latest_price_row['price_usd_per_oz']:,.2f}", f"{price_delta:.1f}%")
+        
+        # 2. 12M Correlation (Latest available monthly)
+        df_corr_latest = df_summary.dropna(subset=['rolling_corr_12m'])
+        latest_corr = df_corr_latest.iloc[-1]['rolling_corr_12m'] if not df_corr_latest.empty else 0
+        col2.metric("12M Correlation", f"{latest_corr:.2f}")
+        
+        # 3. Valuation Score (Latest available monthly)
+        df_val_latest = df_valuation.dropna(subset=['valuation_score'])
+        latest_val = df_val_latest.iloc[-1]['valuation_score'] if not df_val_latest.empty else 0
+        col3.metric("Valuation Score", f"{latest_val:.1f}")
+        
+        # 4. Global Reserves (Latest available monthly)
+        df_res_latest = df_summary.dropna(subset=['total_gold_reserves_tonnes'])
+        latest_res = df_res_latest.iloc[-1]['total_gold_reserves_tonnes'] if not df_res_latest.empty else 0
+        col4.metric("Global Reserves (t)", f"{latest_res:,.0f}")
 
         st.divider()
         c1, c2 = st.columns(2)
         with c1:
-            fig_price = px.line(df_filtered, x='month', y='avg_gold_price_usd', title='Gold Spot Price Trend')
+            # Using DAILY filtered data for higher resolution price trend
+            fig_price = px.line(df_daily_filtered, x='price_date', y='price_usd_per_oz', title='Gold Daily Spot Price Trend')
             st.plotly_chart(fig_price, width='stretch')
         with c2:
-            fig_val = px.area(df_val_filtered, x='month', y='valuation_score', title='Gold Valuation Index')
+            fig_val = px.area(df_val_filtered, x='month', y='valuation_score', title='Gold Valuation Index (Monthly)')
             st.plotly_chart(fig_val, width='stretch')
 
     with tab2:
@@ -146,8 +162,8 @@ try:
         st.plotly_chart(fig_mining, width='stretch')
 
     # Data Deep Dive
-    with st.expander("🔍 View Raw Analytical Data"):
-        st.dataframe(df_filtered.sort_values('month', ascending=False), width='stretch')
+    with st.expander("🔍 View Raw Daily Analytical Data"):
+        st.dataframe(df_daily_filtered.sort_values('price_date', ascending=False), width='stretch')
 
     # Ingestion Metadata / Lineage
     with st.expander("⛓️ Data Lineage & Freshness (Bronze Layer)"):
@@ -171,4 +187,4 @@ except Exception as e:
     st.exception(e)
 
 st.divider()
-st.caption("GIF - Gold Intelligence Framework | 100% API Professional Edition")
+st.caption("GIF - Gold Intelligence Framework | Professional API Dashboard")
