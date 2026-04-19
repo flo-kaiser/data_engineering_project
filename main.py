@@ -3,6 +3,7 @@ import subprocess
 import logging
 import sys
 from ingest_manager import GoldIngestor
+from config import SERIES_MAP, EXCEL_MAP, YFINANCE_MAP
 
 # --- Setup Logging ---
 LOG_DIR = 'logs'
@@ -45,26 +46,24 @@ def main():
     logger.info("======================================================")
     logger.info("🚀 GOLD INTELLIGENCE FRAMEWORK: FULL PIPELINE START")
     logger.info("======================================================")
-    from ingest_manager import GoldIngestor
-    from config import SERIES_MAP, EXCEL_MAP, YFINANCE_MAP
+    
+    ingestor = GoldIngestor()
+    
+    try:
+        # 1. Ingestion Phase
+        logger.info("--- Phase 1: Ingestion (Bronze Layer) ---")
+        
+        # 1a. DBnomics API Data
+        for sid, table in SERIES_MAP.items():
+            ingestor.fetch_and_ingest(sid, table)
 
-    # --- Setup Logging ---
-    ...
-        try:
-            # 1. Ingestion Phase
-            logger.info("--- Phase 1: Ingestion (Bronze Layer) ---")
+        # 1b. Excel File Data
+        for table, (path, sheet) in EXCEL_MAP.items():
+            ingestor.ingest_excel(path, table, sheet)
 
-            # 1a. DBnomics API Data
-            for sid, table in SERIES_MAP.items():
-                ingestor.fetch_and_ingest(sid, table)
-
-            # 1b. Excel File Data
-            for table, (path, sheet) in EXCEL_MAP.items():
-                ingestor.ingest_excel(path, table, sheet)
-
-            # 1c. Yahoo Finance Data
-            for table, symbol in YFINANCE_MAP.items():
-                ingestor.fetch_yfinance(symbol, table)
+        # 1c. Yahoo Finance Data
+        for table, symbol in YFINANCE_MAP.items():
+            ingestor.fetch_yfinance(symbol, table)
 
     except Exception as e:
         logger.critical(f"❌ Critical error during ingestion: {str(e)}")

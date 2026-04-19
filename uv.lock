@@ -1203,7 +1203,7 @@ wheels = [
 [[package]]
 name = "gold-intelligence-framework"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "apache-airflow" },
     { name = "dbnomics", version = "1.2.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -1211,6 +1211,7 @@ dependencies = [
     { name = "dbt-bigquery" },
     { name = "dbt-duckdb" },
     { name = "duckdb" },
+    { name = "google-cloud-bigquery" },
     { name = "google-cloud-storage" },
     { name = "openpyxl" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -1227,6 +1228,7 @@ requires-dist = [
     { name = "dbt-bigquery", specifier = ">=1.7.0" },
     { name = "dbt-duckdb", specifier = ">=1.7.0" },
     { name = "duckdb", specifier = ">=0.9.0" },
+    { name = "google-cloud-bigquery", specifier = ">=3.10.0" },
     { name = "google-cloud-storage", specifier = ">=2.0.0" },
     { name = "openpyxl", specifier = ">=3.1.0" },
     { name = "pandas", specifier = ">=2.0.0" },

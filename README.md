@@ -61,29 +61,31 @@ A weighted score (0-100) based on macro-economic drivers:
 *   **30% EUR Strength:** Inverse USD correlation.
 *   **30% Safe Haven Status:** Inverse correlation with 10Y Real Rates.
 
-## 5. Environment Setup
+## 5. Environment Setup & Quickstart
 
-### Local Mode (Default):
-1.  Ensure `ENVIRONMENT=local` in `.env`.
-2.  Run ingestion: `python ingest_manager.py`
-3.  Run dbt: `cd gold_dbt && dbt run --target dev`
+### Local Mode (Command Center):
+This project uses a `Makefile` for streamlined operations.
+1.  **Install:** `make install`
+2.  **Run Pipeline:** `make pipeline`
+3.  **View Dashboard:** `make dashboard`
+4.  **View Docs:** `make docs` (serves at http://localhost:8081)
 
-### Production Mode (Cloud):
-1.  Set `ENVIRONMENT=prod`, `GCS_BUCKET_NAME`, and GCP credentials in `.env`.
-2.  Deploy Airflow DAG from `dags/gold_pipeline_master.py`.
-3.  dbt will use the `prod` target (BigQuery).
+### Production Mode (Docker/Cloud):
+1.  Set `ENVIRONMENT=prod` in `.env`.
+2.  **Start Services:** `make docker-up` (launches Airflow & Dashboard).
 
 ## 6. Project Structure
 ```text
 .
-├── gold_dbt/              # dbt Project
-│   ├── models/
-│   │   ├── staging/       # Silver Layer: Normalization
-│   │   └── marts/         # Gold Layer: Business Metrics & Correlations
-│   └── profiles.yml       # Multi-target connection config
-├── ingest_manager.py      # Environment-aware Ingestion Framework (GoldIngestor)
-├── dags/                  # Airflow Orchestration
-└── logs/                  # Pipeline & Ingestion logs
+├── gold_dbt/              # dbt Project (Transformation Logic)
+├── dags/                  # Airflow DAGs (Orchestration)
+├── data/bronze/           # Local Lakehouse (Parquet Files)
+├── research/              # Exploration & Development Scripts
+├── docs/                  # Automated Data Catalog
+├── Makefile               # Enterprise Command Center
+├── docker-compose.yml     # Container Orchestration
+├── main.py                # Pipeline Entrypoint
+└── ingest_manager.py      # Core Ingestion Engine
 ```
 
 ---
