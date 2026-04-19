@@ -19,6 +19,13 @@ services:
   # Airflow Orchestrator
   airflow:
     <<: *airflow-common
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-local}
+      - DUCKDB_PATH=/app/data/gold_market.duckdb
+      - DBT_TARGET=${DBT_TARGET:-dev}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - _AIRFLOW_WWW_USER_USERNAME=admin
+      - _AIRFLOW_WWW_USER_PASSWORD=admin123
     command: uv run airflow standalone
     ports:
       - "8080:8080"
