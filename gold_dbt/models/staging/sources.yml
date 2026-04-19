@@ -2,16 +2,26 @@ version: 2
 
 sources:
   - name: bronze
+    description: "Raw API data ingested into the bronze schema. These are Parquet-backed views."
     schema: bronze
     tables:
-      # Alle diese Quellen kommen 100% stabil von APIs (WB, IMF, FED, Yahoo)
       - name: gold_prices_api
+        description: "Historical Gold Spot Prices (USD/oz) from World Bank / Yahoo Finance."
       - name: gold_reserves_api
+        description: "Official Global Gold Reserves (OZT/Tonnes) from International Monetary Fund (IMF)."
       - name: real_interest_rates_api
+        description: "10-Year Real Interest Rates (TIPS) from the Federal Reserve (FED)."
       - name: fx_usd_eur_api
+        description: "Official USD/EUR exchange rates from the European Central Bank (ECB)."
       - name: etf_flows_proxy
+        description: "Gold ETF assets/flows (GLD proxy) from Yahoo Finance."
       - name: dxy
+        description: "US Dollar Index (DXY) from Yahoo Finance."
       - name: sp500
+        description: "S&P 500 Index levels from Yahoo Finance."
       - name: yield_10y
+        description: "10-Year Treasury Yields from Yahoo Finance."
       - name: crude_oil
+        description: "Crude Oil prices from Yahoo Finance."
       - name: ingestion_metadata
+        description: "Technical metadata tracking ingestion timestamps and row counts."

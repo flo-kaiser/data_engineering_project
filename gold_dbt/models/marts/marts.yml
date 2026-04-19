@@ -35,12 +35,20 @@ models:
     columns:
       - name: month
         description: "The month of observation."
+        tests:
+          - not_null
+          - unique
       - name: avg_gold_price_usd
         description: "Monthly average gold price (USD/oz) for reference."
+        tests:
+          - not_null
       - name: valuation_score
         description: "Weighted score (0-100) based on macro-economic drivers."
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
 
   - name: fct_gold_correlation
     description: >
@@ -54,11 +62,16 @@ models:
           - not_null
       - name: avg_price
         description: "Monthly average gold price (USD/oz)."
+        tests:
+          - not_null
       - name: avg_rate
         description: "Monthly average 10Y Real Interest Rate (TIPS)."
+        tests:
+          - not_null
       - name: rolling_corr_12m
         description: "Rolling 12-month Pearson correlation coefficient."
         tests:
+          - not_null
           - dbt_utils.accepted_range:
               min_value: -1.01
               max_value: 1.01
@@ -83,3 +96,9 @@ models:
         tests:
           - unique
           - not_null
+      - name: total_mining_production_tonnes
+        description: "Global production in tonnes."
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
