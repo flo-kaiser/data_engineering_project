@@ -1,0 +1,10 @@
+# --- GCP Configuration ---
+# Your unique Google Cloud Project ID
+project_id = "your-gcp-project-id"
+
+# Region for GCS Bucket and BigQuery Dataset (Default: Frankfurt)
+region     = "europe-west3"
+
+# --- BigQuery Settings ---
+# The ID for your analytics dataset (Default: gold_analytics)
+dataset_id = "gold_analytics"
