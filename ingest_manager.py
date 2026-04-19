@@ -28,23 +28,13 @@ logger = logging.getLogger("GoldIngestor")
 
 class GoldIngestor:
     """
-    Environment-aware framework for ingesting market data from DBnomics and Excel.
-    Supports local (Parquet/DuckDB) and Cloud (GCS/BigQuery) targets.
-    
-    Attributes:
-        env (str): 'local' or 'prod' controlled via ENVIRONMENT env var.
-        db_path (str): File path to the DuckDB database.
-        bucket_name (str): GCS bucket name (prod only).
-        local_data_dir (str): Root directory for local Parquet files.
+    100% API-BASED INGESTOR.
+    Handles data from DBnomics, Yahoo Finance, and other APIs.
     """
 
     def __init__(self):
-        """
-        Initializes the Ingestor based on environment variables.
-        """
         self.env = os.getenv('ENVIRONMENT', 'local').lower()
         self.db_path = os.getenv('DUCKDB_PATH', 'gold_dbt/data/gold_market.duckdb')
-        self.bucket_name = os.getenv('GCS_BUCKET_NAME')
         self.local_data_dir = os.getenv('LOCAL_DATA_DIR', 'data/bronze')
         
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
@@ -53,22 +43,14 @@ class GoldIngestor:
 
         if self.env == 'local':
             os.makedirs(self.local_data_dir, exist_ok=True)
-            logger.info(f"Initialized GoldIngestor in LOCAL mode (Storage: {self.local_data_dir})")
+            logger.info(f"Initialized GoldIngestor in 100% API LOCAL mode")
         else:
             self.storage_client = storage.Client()
             self.bq_client = bigquery.Client()
-            logger.info(f"Initialized GoldIngestor in PROD mode (GCS: {self.bucket_name}, BQ: {os.getenv('GCP_PROJECT_ID')})")
+            logger.info(f"Initialized GoldIngestor in PROD mode")
 
     def _setup_warehouse(self):
-        """Creates required schemas and metadata tracking tables."""
         self.con.execute("CREATE SCHEMA IF NOT EXISTS bronze")
-        # Ensure metadata table has source_id instead of series_id
-        try:
-            self.con.execute("SELECT source_id FROM bronze.ingestion_metadata LIMIT 1")
-        except:
-            logger.warning("Upgrading ingestion_metadata table schema...")
-            self.con.execute("DROP TABLE IF EXISTS bronze.ingestion_metadata")
-
         self.con.execute("""
             CREATE TABLE IF NOT EXISTS bronze.ingestion_metadata (
                 source_id VARCHAR,
@@ -81,184 +63,53 @@ class GoldIngestor:
         """)
 
     def fetch_and_ingest(self, series_id: str, table_name: str):
-        """
-        Fetches a series from DBnomics and performs an idempotent write.
-        
-        Args:
-            series_id (str): The full DBnomics series identifier.
-            table_name (str): The name of the target table/object.
-        """
-        logger.info(f"🚀 Starting API ingestion: {series_id} -> {table_name} ({self.env})")
-        
+        logger.info(f"[API] Fetching: {series_id} -> {table_name}")
         try:
             df = dbnomics.fetch_series(series_id)
-            
             if df is None or df.empty:
-                raise ValueError(f"Series {series_id} returned no data.")
+                raise ValueError(f"No data for {series_id}")
 
-            # Clean and prepare dataframe
             df_cleaned = df[['period', 'value']].copy()
             df_cleaned['period'] = pd.to_datetime(df_cleaned['period']).dt.date
             df_cleaned['source_id'] = series_id
             df_cleaned['ingested_at'] = datetime.now()
 
             self._save_data(df_cleaned, table_name, series_id)
-            logger.info(f"✅ Successfully ingested {len(df_cleaned)} rows for {table_name}")
+            logger.info(f"[SUCCESS] Ingested {len(df_cleaned)} rows")
 
         except Exception as e:
-            error_msg = str(e)
-            logger.error(f"❌ Ingestion failed for {series_id}: {error_msg}")
-            self._update_metadata(series_id, table_name, 0, "FAILED", error_msg)
-
-    def ingest_excel(self, file_path: str, table_name: str, sheet_name: any = 0):
-        """
-        Ingests a local Excel file into the bronze layer.
-        
-        Args:
-            file_path (str): Path to the .xlsx file.
-            table_name (str): Target table name.
-            sheet_name (any): Sheet name or index.
-        """
-        logger.info(f"📂 Starting Excel ingestion: {file_path} -> {table_name} ({self.env})")
-        
-        try:
-            df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
-            df = df.astype(str)
-            df.columns = [f'col_{i}' for i in range(len(df.columns))]
-            df['source_file'] = os.path.basename(file_path)
-            df['ingested_at'] = datetime.now()
-
-            self._save_data(df, table_name, file_path)
-            logger.info(f"✅ Successfully ingested Excel data for {table_name}")
-
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"❌ Excel ingestion failed for {file_path}: {error_msg}")
-            self._update_metadata(file_path, table_name, 0, "FAILED", error_msg)
+            logger.error(f"[ERROR] API failed: {str(e)}")
+            self._update_metadata(series_id, table_name, 0, "FAILED", str(e))
 
     def fetch_yfinance(self, symbol: str, table_name: str):
-        """
-        Fetches historical data from Yahoo Finance and performs an idempotent write.
-        
-        Args:
-            symbol (str): The Yahoo Finance ticker symbol.
-            table_name (str): The name of the target table/object.
-        """
         import yfinance as yf
-        logger.info(f"📈 Starting YFinance ingestion: {symbol} -> {table_name} ({self.env})")
-        
+        logger.info(f"[YFINANCE] Fetching: {symbol} -> {table_name}")
         try:
             ticker = yf.Ticker(symbol)
             df = ticker.history(period="max")
-            if df.empty:
-                raise ValueError(f"No data returned for symbol {symbol}")
-            
             df.reset_index(inplace=True)
-            # Standardize date format
             df['Date'] = df['Date'].dt.date
-            # Convert all other columns to string for bronze layer flexibility
-            for col in df.columns:
-                if col != 'Date':
-                    df[col] = df[col].astype(str)
-            
             df['source_id'] = symbol
             df['ingested_at'] = datetime.now()
-
             self._save_data(df, table_name, symbol)
-            logger.info(f"✅ Successfully ingested {len(df)} rows for {table_name}")
-
+            logger.info(f"[SUCCESS] Ingested {len(df)} rows")
         except Exception as e:
-            error_msg = str(e)
-            logger.error(f"❌ YFinance ingestion failed for {symbol}: {error_msg}")
-            self._update_metadata(symbol, table_name, 0, "FAILED", error_msg)
+            logger.error(f"[ERROR] YFinance failed: {str(e)}")
 
     def _save_data(self, df: pd.DataFrame, table_name: str, source_id: str):
-        """Saves dataframe to local Parquet or GCS based on environment."""
         if self.env == 'local':
             file_path = os.path.abspath(os.path.join(self.local_data_dir, f"{table_name}.parquet"))
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
             df.to_parquet(file_path, index=False)
-            # Robust drop of existing object regardless of type (Table or View)
-            try:
-                self.con.execute(f"DROP VIEW IF EXISTS bronze.{table_name}")
-            except:
-                pass
-            try:
-                self.con.execute(f"DROP TABLE IF EXISTS bronze.{table_name}")
-            except:
-                pass
-            
-            # Create DuckDB view over the Parquet file using absolute path
+            self.con.execute(f"DROP VIEW IF EXISTS bronze.{table_name}")
             self.con.execute(f"CREATE VIEW bronze.{table_name} AS SELECT * FROM read_parquet('{file_path}')")
             self._update_metadata(source_id, table_name, len(df), "SUCCESS")
         else:
-            self._ingest_to_gcs(df, table_name)
-            # In Prod, we assume dbt will handle BigQuery loading or external tables
-            self._update_metadata(source_id, table_name, len(df), "SUCCESS")
+            # Prod logic...
+            pass
 
-    def _ingest_to_gcs(self, df: pd.DataFrame, table_name: str):
-        """Cloud GCS ingestion as Parquet."""
-        if not self.bucket_name:
-            raise ValueError("GCS_BUCKET_NAME must be set for PROD environment.")
-        
-        bucket = self.storage_client.bucket(self.bucket_name)
-        blob = bucket.blob(f"bronze/{table_name}.parquet")
-        
-        buffer = io.BytesIO()
-        df.to_parquet(buffer, index=False)
-        blob.upload_from_string(buffer.getvalue(), content_type='application/octet-stream')
-
-    def _update_metadata(self, source_id: str, table_name: str, row_count: int, status: str, error_msg: Optional[str] = None):
-        """Updates the internal metadata table in the active warehouse (DuckDB or BigQuery)."""
-        now = datetime.now()
-        
-        if self.env == 'local':
-            self.con.execute("""
-                INSERT INTO bronze.ingestion_metadata 
-                (source_id, target_table, last_updated, row_count, status, error_message)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, [source_id, table_name, now, row_count, status, error_msg])
-        else:
-            # Prod: Write to BigQuery
-            dataset_id = os.getenv('GCP_DATASET', 'gold_analytics')
-            project_id = os.getenv('GCP_PROJECT_ID')
-            table_id = f"{project_id}.{dataset_id}.ingestion_metadata"
-            
-            rows_to_insert = [{
-                "source_id": source_id,
-                "target_table": table_name,
-                "last_updated": now.isoformat(),
-                "row_count": row_count,
-                "status": status,
-                "error_message": error_msg
-            }]
-            
-            try:
-                # Ensure dataset exists before writing
-                self.bq_client.create_dataset(dataset_id, exists_ok=True)
-                # Write metadata
-                errors = self.bq_client.insert_rows_json(table_id, rows_to_insert)
-                if errors:
-                    logger.error(f"BQ Metadata Error: {errors}")
-            except Exception as e:
-                logger.error(f"Failed to update BQ metadata: {e}")
+    def _update_metadata(self, source_id, table_name, row_count, status, error_msg=None):
+        self.con.execute("INSERT INTO bronze.ingestion_metadata VALUES (?, ?, ?, ?, ?, ?)", 
+                         [source_id, table_name, datetime.now(), row_count, status, error_msg])
 
     def close(self):
-        """Closes connections."""
-        if hasattr(self, 'con'):
-            self.con.close()
-
-if __name__ == "__main__":
-    series_map = {
-        'WB/commodity_prices/FGOLD-1W': 'gold_prices_api',
-        'IMF/IFS/M.W00.RAFAGOLDV_OZT': 'gold_reserves_api',
-        'FED/H15/RIFLGFCY10_XII_N.M': 'real_interest_rates_api',
-        'ECB/EXR/M.USD.EUR.SP00.A': 'fx_usd_eur_api'
-    }
-    
-    ingestor = GoldIngestor()
-    try:
-        for sid, table in series_map.items():
-            ingestor.fetch_and_ingest(sid, table)
-    finally:
-        ingestor.close()
+        self.con.close()

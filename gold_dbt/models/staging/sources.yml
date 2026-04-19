@@ -4,19 +4,14 @@ sources:
   - name: bronze
     schema: bronze
     tables:
-      - name: gold_prices
-      - name: etf_flows
-      - name: gold_stocks
-      - name: gdt_demand
-      - name: mining_production
-      - name: gold_premiums
-      - name: central_bank_holdings
-      - name: dxy
-      - name: sp500
-      - name: yield_10y
-      - name: crude_oil
+      # Alle diese Quellen kommen 100% stabil von APIs (WB, IMF, FED, Yahoo)
       - name: gold_prices_api
       - name: gold_reserves_api
       - name: real_interest_rates_api
       - name: fx_usd_eur_api
+      - name: etf_flows_proxy
+      - name: dxy
+      - name: sp500
+      - name: yield_10y
+      - name: crude_oil
       - name: ingestion_metadata

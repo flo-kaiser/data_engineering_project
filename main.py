@@ -44,14 +44,14 @@ def main():
     Sequentially executes: Ingestion -> Transformation -> Validation -> Reporting.
     """
     logger.info("======================================================")
-    logger.info("🚀 GOLD INTELLIGENCE FRAMEWORK: FULL PIPELINE START")
+    logger.info("[START] GOLD INTELLIGENCE FRAMEWORK: FULL PIPELINE START")
     logger.info("======================================================")
     
     ingestor = GoldIngestor()
     
     try:
         # 1. Ingestion Phase
-        logger.info("--- Phase 1: Ingestion (Bronze Layer) ---")
+        logger.info("[PHASE 1] Ingestion (Bronze Layer)")
         
         # 1a. DBnomics API Data
         for sid, table in SERIES_MAP.items():
@@ -66,35 +66,35 @@ def main():
             ingestor.fetch_yfinance(symbol, table)
 
     except Exception as e:
-        logger.critical(f"❌ Critical error during ingestion: {str(e)}")
+        logger.critical(f"[ERROR] Critical error during ingestion: {str(e)}")
         sys.exit(1)
     finally:
         ingestor.close()
 
     # 2. Transformation Phase (dbt Run)
-    logger.info("--- Phase 2: Transformation (Silver/Gold Layers) ---")
+    logger.info("[PHASE 2] Transformation (Silver/Gold Layers)")
     if not run_dbt_command(['dbt', 'run']):
-        logger.error("❌ dbt run failed. Aborting pipeline.")
+        logger.error("[ERROR] dbt run failed. Aborting pipeline.")
         sys.exit(1)
 
     # 3. Validation Phase (dbt Test)
-    logger.info("--- Phase 3: Validation (Data Quality Tests) ---")
+    logger.info("[PHASE 3] Validation (Data Quality Tests)")
     if not run_dbt_command(['dbt', 'test']):
-        logger.warning("⚠️ dbt tests encountered issues. Check data quality logs.")
+        logger.warning("[WARNING] dbt tests encountered issues. Check data quality logs.")
     
     # 4. Final Summary
     logger.info("======================================================")
-    logger.info("✅ PIPELINE EXECUTION COMPLETE")
+    logger.info("[SUCCESS] PIPELINE EXECUTION COMPLETE")
     logger.info("======================================================")
-    logger.info("📊 DATABASE SUMMARY:")
+    logger.info("[REPORT] DATABASE SUMMARY:")
     logger.info(f"   - Database: {os.path.abspath('gold_dbt/data/gold_market.duckdb')}")
     logger.info("   - Schemas: bronze, main (dbt default)")
     logger.info("   - Key Marts: fct_market_summary, fct_gold_valuation_index")
     logger.info("")
-    logger.info("🖥️  DASHBOARD:")
+    logger.info("[REPORT] DASHBOARD:")
     logger.info("   - Run: 'streamlit run dashboard.py'")
     logger.info("")
-    logger.info("📜 DOCUMENTATION SUMMARY:")
+    logger.info("[REPORT] DOCUMENTATION SUMMARY:")
     logger.info("   - Architecture: README.md (Mermaid Diagram)")
     logger.info("   - Data Logic: Documented in SQL Headers & marts.yml")
     logger.info("   - dbt Docs: Run 'dbt docs generate && dbt docs serve' in gold_dbt/")
