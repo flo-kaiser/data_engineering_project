@@ -3,7 +3,8 @@ gold_dbt:
   outputs:
     dev:
       type: duckdb
-      path: "{{ env_var('DUCKDB_PATH', 'data/gold_market.duckdb') }}"
+      # Wir nutzen einen Pfad, der relativ zum dbt-Projektordner funktioniert
+      path: "data/gold_market.duckdb"
       schema: main
     prod:
       type: bigquery

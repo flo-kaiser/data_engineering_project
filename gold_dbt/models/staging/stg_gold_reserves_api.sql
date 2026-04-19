@@ -6,10 +6,10 @@ WITH raw AS (
 
 SELECT
     CAST(period AS DATE) AS observation_date,
-    CAST(value AS DOUBLE) AS gold_reserves_ozt,
-    -- Requirement: Umrechnung von Feinunzen in metrische Tonnen
-    -- 1t = 32150.7 oz
-    CAST(value / 32150.7 AS DOUBLE) AS gold_reserves_tonnes,
+    CAST(value * 1000000 AS DOUBLE) AS gold_reserves_ozt,
+    -- Requirement: Umrechnung von Millionen Feinunzen in metrische Tonnen
+    -- (value * 1.000.000) / 32150.7
+    CAST((value * 1000000) / 32150.7 AS DOUBLE) AS gold_reserves_tonnes,
     'DBnomics: IMF/IFS/M.W00.RAFAGOLDV_OZT' AS source
 FROM raw
 WHERE value IS NOT NULL

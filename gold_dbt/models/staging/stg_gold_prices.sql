@@ -1,17 +1,18 @@
 /*
     MODEL: stg_gold_prices
-    DESCRIPTION: Normalizes Gold Prices from World Bank API.
+    DESCRIPTION: Normalizes Gold Prices from Yahoo Finance (GC=F).
 */
 
 with raw as (
+    -- Die Daten kommen nun über die YFinance Ingestion
     select * from {{ source('bronze', 'gold_prices_api') }}
 )
 
 select
-    cast(period as date) as price_date,
+    cast("Date" as date) as price_date,
     'USD' as currency,
-    cast(value as double) as price_usd_per_oz,
-    -- Hinzufügen der Tonnen-Konvertierung für fct_market_summary
-    cast(value as double) * 32150.7 AS price_usd_per_ton
+    cast("Close" as double) as price_usd_per_oz,
+    -- Umrechnung in Tonnen
+    cast("Close" as double) * 32150.7 AS price_usd_per_ton
 from raw
-where value is not null
+where "Close" is not null
