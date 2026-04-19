@@ -1,29 +1,36 @@
 version: '3.8'
 
+x-airflow-common:
+  &airflow-common
+  build: .
+  environment:
+    - ENVIRONMENT=${ENVIRONMENT:-local}
+    - DUCKDB_PATH=/app/data/gold_market.duckdb
+    - DBT_TARGET=${DBT_TARGET:-dev}
+    - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+    - GCP_DATASET=${GCP_DATASET}
+    - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
+    - GCP_KEYFILE_PATH=/app/auth/service_account.json
+  volumes:
+    - .:/app
+    - ./dags:/usr/local/airflow/dags
+
 services:
-  # Das Dashboard (Streamlit)
+  # Airflow Orchestrator
+  airflow:
+    <<: *airflow-common
+    command: uv run airflow standalone
+    ports:
+      - "8080:8080"
+
+  # Dashboard
   dashboard:
-    build: .
+    <<: *airflow-common
     ports:
       - "8501:8501"
-    environment:
-      - ENVIRONMENT=local
-      - DUCKDB_PATH=/app/data/gold_market.duckdb
-      - DBT_TARGET=dev
-    volumes:
-      - gold_data:/app/data  # Named Volume für maximale Geschwindigkeit
     command: uv run streamlit run dashboard.py --server.port 8501 --server.address 0.0.0.0
 
-  # Die Pipeline (Ingestion & dbt)
+  # Pipeline (Manual execution)
   pipeline:
-    build: .
-    environment:
-      - ENVIRONMENT=local
-      - DUCKDB_PATH=/app/data/gold_market.duckdb
-      - DBT_TARGET=dev
-    volumes:
-      - gold_data:/app/data  # Gleiches Volume wie Dashboard
+    <<: *airflow-common
     command: uv run python main.py
-
-volumes:
-  gold_data: # Docker verwaltet diesen Speicher intern (sehr schnell)
