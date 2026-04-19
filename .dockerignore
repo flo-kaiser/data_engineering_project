@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.git/
+gold_dbt/target/
+gold_dbt/dbt_packages/
+gold_dbt/logs/
+logs/
+data/

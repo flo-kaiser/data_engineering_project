@@ -35,12 +35,15 @@ def load_data():
     
     # Load Market Summary
     df_summary = con.execute("SELECT * FROM main.fct_market_summary ORDER BY month ASC").df()
+    df_summary['month'] = pd.to_datetime(df_summary['month'])
     
     # Load Valuation Index
     df_valuation = con.execute("SELECT * FROM main.fct_gold_valuation_index ORDER BY month ASC").df()
+    df_valuation['month'] = pd.to_datetime(df_valuation['month'])
 
     # Load Macro Drivers
     df_drivers = con.execute("SELECT * FROM main.fct_gold_market_drivers ORDER BY market_month ASC").df()
+    df_drivers['market_month'] = pd.to_datetime(df_drivers['market_month'])
 
     # Load Mining Data
     df_mining = con.execute("SELECT * FROM main.fct_mining_vs_price ORDER BY market_year ASC").df()
@@ -51,10 +54,32 @@ def load_data():
 try:
     df_summary, df_valuation, df_drivers, df_mining = load_data()
     
-    # ... (Sidebar code remains the same) ...
+    # --- Sidebar ---
     st.sidebar.title("🏆 Gold Intelligence")
     st.sidebar.markdown("Enterprise Market Framework")
-    # ... 
+    st.sidebar.divider()
+    
+    # Date Filter
+    min_date = df_summary['month'].min().date()
+    max_date = df_summary['month'].max().date()
+    
+    start_date, end_date = st.sidebar.slider(
+        "Select Time Period",
+        min_value=min_date,
+        max_value=max_date,
+        value=(min_date, max_date)
+    )
+    
+    # Apply Filtering
+    df_filtered = df_summary[
+        (df_summary['month'].dt.date >= start_date) & 
+        (df_summary['month'].dt.date <= end_date)
+    ]
+    
+    df_val_filtered = df_valuation[
+        (df_valuation['month'].dt.date >= start_date) & 
+        (df_valuation['month'].dt.date <= end_date)
+    ]
 
     # --- Main Dashboard ---
     st.title("🏆 Gold Market Intelligence Dashboard")
@@ -62,18 +87,24 @@ try:
     tab1, tab2, tab3 = st.tabs(["📊 Market Overview", "📈 Macro Drivers", "⚒️ Supply & Demand"])
 
     with tab1:
-        # Top Metrics
-        col1, col2, col3, col4 = st.columns(4)
-        latest = df_summary.iloc[-1]
-        prev = df_summary.iloc[-2]
-        price_delta = ((latest['avg_gold_price_usd'] - prev['avg_gold_price_usd']) / prev['avg_gold_price_usd']) * 100
-        
-        col1.metric("Gold Price (USD/oz)", f"${latest['avg_gold_price_usd']:,.2f}", f"{price_delta:.1f}%")
-        col2.metric("12M Correlation", f"{latest['rolling_corr_12m']:.2f}")
-        
-        latest_val = df_valuation.iloc[-1]
-        col3.metric("Valuation Score", f"{latest_val['valuation_score']:.1f}")
-        col4.metric("Global Reserves (t)", f"{latest['total_gold_reserves_tonnes']:,.0f}")
+        # Top Metrics - Use latest row that HAS data to avoid NaN
+        df_metrics = df_summary.dropna(subset=['rolling_corr_12m', 'total_gold_reserves_tonnes'])
+        if not df_metrics.empty:
+            latest = df_metrics.iloc[-1]
+            prev = df_metrics.iloc[-2] if len(df_metrics) > 1 else latest
+            
+            price_delta = ((latest['avg_gold_price_usd'] - prev['avg_gold_price_usd']) / prev['avg_gold_price_usd']) * 100
+            
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Gold Price (USD/oz)", f"${latest['avg_gold_price_usd']:,.2f}", f"{price_delta:.1f}%")
+            col2.metric("12M Correlation", f"{latest['rolling_corr_12m']:.2f}")
+            
+            # Use latest available valuation
+            latest_val = df_valuation.dropna(subset=['valuation_score']).iloc[-1]
+            col3.metric("Valuation Score", f"{latest_val['valuation_score']:.1f}")
+            col4.metric("Global Reserves (t)", f"{latest['total_gold_reserves_tonnes']:,.0f}")
+        else:
+            st.warning("Insufficient complete data for top metrics.")
 
         st.divider()
         c1, c2 = st.columns(2)
@@ -89,11 +120,15 @@ try:
         col_m1, col_m2 = st.columns(2)
         
         with col_m1:
-            fig_etf = px.bar(df_drivers, x='market_month', y='total_etf_flow_usd_mn', title='Global Gold ETF Flows (USD mn)')
+            # ETF Chart: Filter to start at 2005
+            df_etf = df_drivers[df_drivers['market_month'] >= '2005-01-01']
+            fig_etf = px.bar(df_etf, x='market_month', y='total_etf_flow_usd_mn', title='Gold Market Activity Proxy (ETFs since 2005)')
             st.plotly_chart(fig_etf, use_container_width=True)
         
         with col_m2:
-            fig_dxy = px.line(df_drivers, x='market_month', y='avg_dxy', title='US Dollar Index (DXY) Trend')
+            # DXY Chart: Filter to start at 1971
+            df_dxy = df_drivers[df_drivers['market_month'] >= '1971-01-01']
+            fig_dxy = px.line(df_dxy, x='market_month', y='avg_dxy', title='US Dollar Index (DXY) Trend since 1971')
             st.plotly_chart(fig_dxy, use_container_width=True)
 
     with tab3:
@@ -105,11 +140,10 @@ try:
         fig_mining.update_layout(
             title="Mining Production vs. Gold Price",
             yaxis=dict(title="Tonnes"),
-            yaxis2=dict(title="Price (USD)", overlaying="y", side="right")
+            yaxis2=dict(title="Price (USD)", overlaying="y", side="right"),
+            legend=dict(x=0.01, y=0.99)
         )
         st.plotly_chart(fig_mining, use_container_width=True)
-
-    # ... (Lineage and Raw Data expanders) ...
 
     # Data Deep Dive
     with st.expander("🔍 View Raw Analytical Data"):
@@ -134,6 +168,7 @@ try:
 except Exception as e:
     st.error(f"Error loading dashboard: {str(e)}")
     st.info("Make sure the pipeline has been run successfully: `python main.py`")
+    st.exception(e)
 
 st.divider()
-st.caption("GIF - Gold Intelligence Framework | Professional Edition")
+st.caption("GIF - Gold Intelligence Framework | 100% API Professional Edition")
