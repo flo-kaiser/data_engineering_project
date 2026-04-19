@@ -110,10 +110,10 @@ try:
         c1, c2 = st.columns(2)
         with c1:
             fig_price = px.line(df_filtered, x='month', y='avg_gold_price_usd', title='Gold Spot Price Trend')
-            st.plotly_chart(fig_price, use_container_width=True)
+            st.plotly_chart(fig_price, width='stretch')
         with c2:
             fig_val = px.area(df_val_filtered, x='month', y='valuation_score', title='Gold Valuation Index')
-            st.plotly_chart(fig_val, use_container_width=True)
+            st.plotly_chart(fig_val, width='stretch')
 
     with tab2:
         st.subheader("Macro-Economic Impact Factors")
@@ -123,13 +123,13 @@ try:
             # ETF Chart: Filter to start at 2005
             df_etf = df_drivers[df_drivers['market_month'] >= '2005-01-01']
             fig_etf = px.bar(df_etf, x='market_month', y='total_etf_flow_usd_mn', title='Gold Market Activity Proxy (ETFs since 2005)')
-            st.plotly_chart(fig_etf, use_container_width=True)
+            st.plotly_chart(fig_etf, width='stretch')
         
         with col_m2:
             # DXY Chart: Filter to start at 1971
             df_dxy = df_drivers[df_drivers['market_month'] >= '1971-01-01']
             fig_dxy = px.line(df_dxy, x='market_month', y='avg_dxy', title='US Dollar Index (DXY) Trend since 1971')
-            st.plotly_chart(fig_dxy, use_container_width=True)
+            st.plotly_chart(fig_dxy, width='stretch')
 
     with tab3:
         st.subheader("Global Supply Fundamentals")
@@ -143,11 +143,11 @@ try:
             yaxis2=dict(title="Price (USD)", overlaying="y", side="right"),
             legend=dict(x=0.01, y=0.99)
         )
-        st.plotly_chart(fig_mining, use_container_width=True)
+        st.plotly_chart(fig_mining, width='stretch')
 
     # Data Deep Dive
     with st.expander("🔍 View Raw Analytical Data"):
-        st.dataframe(df_filtered.sort_values('month', ascending=False), use_container_width=True)
+        st.dataframe(df_filtered.sort_values('month', ascending=False), width='stretch')
 
     # Ingestion Metadata / Lineage
     with st.expander("⛓️ Data Lineage & Freshness (Bronze Layer)"):
@@ -156,7 +156,7 @@ try:
         con.close()
         
         st.markdown("### Latest Ingestion Jobs")
-        st.dataframe(df_meta, use_container_width=True)
+        st.dataframe(df_meta, width='stretch')
         
         # Simple health check based on metadata
         failed_jobs = df_meta[df_meta['status'] == 'FAILED']
