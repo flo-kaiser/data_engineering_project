@@ -53,7 +53,7 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    command: uv run airflow api-server --hostname 0.0.0.0
+    command: uv run airflow api-server --host 0.0.0.0
     ports:
       - "8080:8080"
     depends_on:
