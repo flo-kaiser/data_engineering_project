@@ -1,6 +1,6 @@
 from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.operators.bash import BashOperator
+from airflow.providers.standard.operators.python import PythonOperator
+from airflow.providers.standard.operators.bash import BashOperator
 from datetime import datetime, timedelta
 import sys
 import os
@@ -42,7 +42,7 @@ with DAG(
     'gold_pipeline_master',
     default_args=default_args,
     description='Master pipeline for gold market intelligence data ingestion and transformation.',
-    schedule_interval='@daily',
+    schedule='@daily',
     start_date=datetime(2026, 1, 1),
     catchup=False,
     tags=['gold', 'finance', 'dbt', 'api-driven'],
