@@ -27,14 +27,13 @@ docs:
 	cd gold_dbt && uv run dbt docs serve --port 8082
 
 docker-up:
+	docker-compose up -d postgres airflow-init
+	@echo "Waiting for database initialization..."
+	@sleep 10
 	docker-compose up -d
 
 docker-down:
 	docker-compose down
-
-get-airflow-pass:
-	@echo "🔑 Airflow Admin Password:"
-	@docker exec data_engineering_project-airflow-1 cat /usr/local/airflow/standalone_admin_password.txt
 
 clean:
 	rm -rf logs/*.log

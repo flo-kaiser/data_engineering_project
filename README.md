@@ -120,12 +120,10 @@ terraform apply # Requires project_id in terraform.tfvars
 
 ### 2. Run the Full Pipeline
 ```bash
-# Via Makefile:
-make pipeline
+# Via Makefile (Full Stack with Airflow & Postgres):
+make docker-up
 
-# Via Docker (Recommended for Airflow):
-docker-compose up -d airflow
-make get-airflow-pass # Retrieve the generated admin password
+# Access Airflow at http://localhost:8080 (admin / admin123)
 ```
 
 ### 3. Explore Analytics

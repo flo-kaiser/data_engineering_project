@@ -15,26 +15,61 @@ x-airflow-common:
     - AIRFLOW_HOME=/usr/local/airflow
     - AIRFLOW__CORE__FERNET_KEY=fS3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_M=
     - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres/${POSTGRES_DB:-airflow}
     # Airflow 3 Native Auth (Simple Auth Manager)
     - AIRFLOW__AUTH_MANAGER__COMMON__ADMIN_USERNAME=${AIRFLOW_USERNAME:-admin}
     - AIRFLOW__AUTH_MANAGER__COMMON__ADMIN_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
-    # Legacy support for some Airflow versions
-    - AIRFLOW_STANDALONE_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
   volumes:
     - .:/app
     - ./dags:/usr/local/airflow/dags
     - airflow_data:/usr/local/airflow
+  depends_on:
+    postgres:
+      condition: service_healthy
 
 services:
-  airflow:
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-airflow}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-airflow}
+      - POSTGRES_DB=${POSTGRES_DB:-airflow}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-airflow}"]
+      interval: 5s
+      retries: 5
+
+  airflow-init:
     <<: *airflow-common
     command: >
       bash -c "
-      mkdir -p /usr/local/airflow &&
-      echo \"${AIRFLOW_PASSWORD:-admin123}\" > /usr/local/airflow/standalone_admin_password.txt &&
-      uv run airflow standalone"
+      uv run airflow db migrate &&
+      uv run airflow users create -u \"${AIRFLOW_USERNAME:-admin}\" -p \"${AIRFLOW_PASSWORD:-admin123}\" -r Admin -e admin@example.com -f Admin -l User || true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: uv run airflow webserver
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: uv run airflow scheduler
+
+  airflow-triggerer:
+    <<: *airflow-common
+    command: uv run airflow triggerer
 
   dashboard:
     <<: *airflow-common
@@ -59,3 +94,4 @@ services:
 volumes:
   gold_data:
   airflow_data:
+  postgres_data:
