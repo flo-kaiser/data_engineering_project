@@ -47,8 +47,16 @@ class GoldIngestor:
             os.makedirs(self.local_data_dir, exist_ok=True)
             logger.info(f"Initialized GoldIngestor in 100% API LOCAL mode")
         else:
-            self.storage_client = storage.Client()
-            self.bq_client = bigquery.Client()
+            key_path = os.getenv('GCP_KEYFILE_PATH')
+            if key_path and os.path.exists(key_path):
+                self.storage_client = storage.Client.from_service_account_json(key_path)
+                self.bq_client = bigquery.Client.from_service_account_json(key_path)
+                logger.info(f"Using service account key from: {key_path}")
+            else:
+                self.storage_client = storage.Client()
+                self.bq_client = bigquery.Client()
+                logger.info("Using default application credentials (ADC)")
+                
             self.bucket_name = os.getenv('GCS_BUCKET_NAME')
             if not self.bucket_name:
                 raise ValueError("GCS_BUCKET_NAME environment variable is required in PROD mode")
