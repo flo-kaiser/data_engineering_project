@@ -74,8 +74,9 @@ def main():
     # 2. Transformation Phase (dbt Run)
     logger.info("[PHASE 2] Transformation (Silver/Gold Layers)")
     
-    # Sicherstellen, dass die dbt-Abhängigkeiten aktuell sind
-    logger.info("Installing dbt dependencies...")
+    # Sicherstellen, dass die dbt-Abhängigkeiten aktuell sind und keine Altlasten vorhanden sind
+    logger.info("Cleaning dbt artifacts and installing dependencies...")
+    run_dbt_command(['dbt', 'clean'])
     run_dbt_command(['dbt', 'deps'])
     
     if not run_dbt_command(['dbt', 'run']):
