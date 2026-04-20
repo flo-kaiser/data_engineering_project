@@ -42,7 +42,7 @@ docker-down:
 
 get-airflow-pass:
 	@echo "🔑 Airflow Admin Password:"
-	@docker exec gold-airflow cat /usr/local/airflow/standalone_admin_password.txt
+	@docker logs gold-airflow 2>&1 | grep "Password for user 'admin':" | awk -F': ' '{print $$2}' | tr -d ' '
 
 clean:
 	rm -rf logs/*.log

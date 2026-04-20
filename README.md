@@ -149,7 +149,8 @@ terraform apply
 *   **Dashboard:** `make dashboard` (http://localhost:8501)
 *   **dbt Docs:** `make docs` (http://localhost:8082)
 *   **Airflow UI:** http://localhost:8080 (User: `admin`)
-    *   *To retrieve the generated Airflow password, run:* `make get-airflow-pass`
+    *   *Password:* Airflow generates a random password on the first start. 
+    *   *Retrieve it with:* `make get-airflow-pass` (This reads the password directly from the container logs).
 
 ### 🛑 Troubleshooting
 
