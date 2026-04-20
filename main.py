@@ -2,8 +2,14 @@ import os
 import subprocess
 import logging
 import sys
+from dotenv import load_dotenv
 from ingest_manager import GoldIngestor
 from config import SERIES_MAP, EXCEL_MAP, YFINANCE_MAP
+
+# --- Load Environment Variables ---
+load_dotenv()
+ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+DBT_TARGET = os.getenv("DBT_TARGET", "dev")
 
 # --- Setup Logging ---
 LOG_DIR = 'logs'
@@ -20,6 +26,10 @@ logger = logging.getLogger("GoldPipelineOrchestrator")
 
 def run_dbt_command(command_list):
     """Executes a dbt command and logs the output."""
+    # Append target if specified
+    if DBT_TARGET:
+        command_list.extend(['--target', DBT_TARGET])
+        
     logger.info(f"Running dbt command: {' '.join(command_list)}")
     try:
         # We need to run dbt from within the gold_dbt directory
@@ -44,7 +54,7 @@ def main():
     Sequentially executes: Ingestion -> Transformation -> Validation -> Reporting.
     """
     logger.info("======================================================")
-    logger.info("[START] GOLD INTELLIGENCE FRAMEWORK: FULL PIPELINE START")
+    logger.info(f"[START] GOLD INTELLIGENCE FRAMEWORK: {ENVIRONMENT.upper()} PIPELINE START")
     logger.info("======================================================")
     
     ingestor = GoldIngestor()
@@ -93,8 +103,13 @@ def main():
     logger.info("[SUCCESS] PIPELINE EXECUTION COMPLETE")
     logger.info("======================================================")
     logger.info("[REPORT] DATABASE SUMMARY:")
-    logger.info(f"   - Database: {os.path.abspath('gold_dbt/data/gold_market.duckdb')}")
-    logger.info("   - Schemas: bronze, main (dbt default)")
+    if ENVIRONMENT == 'prod':
+        logger.info(f"   - Database: BigQuery (Project: {os.getenv('GCP_PROJECT_ID')})")
+        logger.info(f"   - Dataset: {os.getenv('GCP_DATASET', 'gold_analytics')}")
+    else:
+        logger.info(f"   - Database: {os.abspath('gold_dbt/data/gold_market.duckdb')}")
+        logger.info("   - Schemas: bronze, main (dbt default)")
+    
     logger.info("   - Key Marts: fct_market_summary, fct_gold_valuation_index")
     logger.info("")
     logger.info("[REPORT] DASHBOARD:")
