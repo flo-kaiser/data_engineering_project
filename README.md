@@ -148,7 +148,8 @@ terraform apply
 ### 4. Explore Analytics
 *   **Dashboard:** `make dashboard` (http://localhost:8501)
 *   **dbt Docs:** `make docs` (http://localhost:8082)
-*   **Airflow UI:** http://localhost:8080 (User: `admin` | Pass: generated or `.env`)
+*   **Airflow UI:** http://localhost:8080 (User: `admin`)
+    *   *To retrieve the generated Airflow password, run:* `make get-airflow-pass`
 
 ### 🛑 Troubleshooting
 
