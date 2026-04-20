@@ -24,8 +24,8 @@ x-airflow-common:
     - AIRFLOW__AUTH_MANAGER__COMMON__ADMIN_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
   volumes:
     - .:/app
-    - ./dags:/usr/local/airflow/dags
-    - airflow_data:/usr/local/airflow
+    - ./dags:/usr/local/airflow/dags:ro
+    - airflow_data:/usr/local/airflow/db
 
 services:
   postgres:
