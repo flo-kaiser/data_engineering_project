@@ -4,8 +4,9 @@ import dbnomics
 import duckdb
 import logging
 import io
+import time
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, Callable
 from google.cloud import storage, bigquery
 from dotenv import load_dotenv
 
@@ -30,6 +31,7 @@ class GoldIngestor:
     """
     100% API-BASED INGESTOR.
     Supports Local (DuckDB) and Cloud (GCS/BigQuery).
+    Now with built-in retry logic for production robustness.
     """
 
     def __init__(self):
@@ -64,10 +66,27 @@ class GoldIngestor:
                 )
             """)
 
+    def _fetch_with_retry(self, fetch_func: Callable, identifier: str, max_retries: int = 3, base_delay: int = 2):
+        """
+        Helper to execute a fetch function with exponential backoff.
+        """
+        for attempt in range(max_retries):
+            try:
+                return fetch_func()
+            except Exception as e:
+                wait_time = base_delay * (2 ** attempt)
+                if attempt < max_retries - 1:
+                    logger.warning(f"[RETRY] Attempt {attempt+1} failed for {identifier}. Waiting {wait_time}s... Error: {str(e)}")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"[FATAL] All {max_retries} attempts failed for {identifier}")
+                    raise e
+
     def fetch_and_ingest(self, series_id: str, table_name: str):
         logger.info(f"[API] Fetching: {series_id} -> {table_name}")
         try:
-            df = dbnomics.fetch_series(series_id)
+            df = self._fetch_with_retry(lambda: dbnomics.fetch_series(series_id), series_id)
+            
             if df is None or df.empty:
                 raise ValueError(f"No data for {series_id}")
 
@@ -88,7 +107,11 @@ class GoldIngestor:
         logger.info(f"[YFINANCE] Fetching: {symbol} -> {table_name}")
         try:
             ticker = yf.Ticker(symbol)
-            df = ticker.history(period="max")
+            df = self._fetch_with_retry(lambda: ticker.history(period="max"), symbol)
+            
+            if df is None or df.empty:
+                 raise ValueError(f"No data for {symbol}")
+
             df.reset_index(inplace=True)
             df['Date'] = df['Date'].dt.date
             df['source_id'] = symbol
@@ -97,6 +120,7 @@ class GoldIngestor:
             logger.info(f"[SUCCESS] Ingested {len(df)} rows")
         except Exception as e:
             logger.error(f"[ERROR] YFinance failed: {str(e)}")
+            self._update_metadata(symbol, table_name, 0, "FAILED", str(e))
 
     def _save_data(self, df: pd.DataFrame, table_name: str, source_id: str):
         if self.env == 'local':
