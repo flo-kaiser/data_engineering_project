@@ -149,6 +149,11 @@ chmod -R 777 gold_dbt/ logs/
 make docker-up
 ```
 
+### 3. Explore Analytics
+*   **Dashboard:** `make dashboard` (http://localhost:8501)
+*   **dbt Docs:** `make docs` (http://localhost:8082)
+*   **Airflow UI:** http://localhost:8080 (User: `admin` | Pass: generated or `.env`)
+
 ### 🛑 Troubleshooting
 
 **Permission Denied (DuckDB):**
@@ -157,8 +162,5 @@ Fix it with: `sudo chown -R $USER:$USER gold_dbt/data/` or delete the file to le
 
 **uv: command not found:**
 Ensure you have run `source $HOME/.local/bin/env` after installing `uv` or use the absolute path `~/.local/bin/uv`.
-*   **Dashboard:** `make dashboard` (http://localhost:8501)
-*   **dbt Docs:** `make docs` (http://localhost:8082)
-*   **Airflow UI:** http://localhost:8080 (User: `admin` | Pass: generated or `.env`)
 
 ---
