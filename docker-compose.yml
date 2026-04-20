@@ -17,6 +17,10 @@ x-airflow-common:
     - AIRFLOW__CORE__LOAD_EXAMPLES=False
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres/${POSTGRES_DB:-airflow}
+    # Airflow 3 Tuning
+    - AIRFLOW__CORE__HOSTNAME_CALLABLE=airflow.utils.net.get_host_ip
+    - AIRFLOW__CORE__PARALLELISM=32
+    - AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG=5
     # Airflow 3 Internal API communication
     - AIRFLOW__API__BASE_URL=http://airflow-webserver:8080
     # Airflow 3 Native Auth (Simple Auth Manager)
