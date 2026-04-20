@@ -4,7 +4,7 @@ gold_dbt:
     dev:
       type: duckdb
       # Wir nutzen einen Pfad, der relativ zum dbt-Projektordner funktioniert
-      path: "data/gold_market.duckdb"
+      path: "data/gold_market_local.duckdb"
       schema: main
     prod:
       type: bigquery
