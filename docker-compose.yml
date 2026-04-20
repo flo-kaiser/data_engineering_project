@@ -1,4 +1,4 @@
-version: '3.8'
+name: gold-analytics
 
 x-airflow-common:
   &airflow-common
@@ -23,6 +23,7 @@ x-airflow-common:
 
 services:
   airflow:
+    container_name: gold-airflow
     <<: *airflow-common
     command: >
       bash -c "
@@ -31,16 +32,19 @@ services:
       - "8080:8080"
 
   dashboard:
+    container_name: gold-dashboard
     <<: *airflow-common
     ports:
       - "8501:8501"
     command: uv run streamlit run dashboard.py --server.port 8501 --server.address 0.0.0.0
 
   pipeline:
+    container_name: gold-pipeline
     <<: *airflow-common
     command: uv run python main.py
 
   dbt_docs:
+    container_name: gold-dbt-docs
     <<: *airflow-common
     ports:
       - "8082:8082"
