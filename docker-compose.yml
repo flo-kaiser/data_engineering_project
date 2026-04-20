@@ -17,6 +17,8 @@ x-airflow-common:
     - AIRFLOW__CORE__LOAD_EXAMPLES=False
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres/${POSTGRES_DB:-airflow}
+    # Airflow 3 Internal API communication
+    - AIRFLOW__API__BASE_URL=http://airflow-webserver:8080
     # Airflow 3 Native Auth (Simple Auth Manager)
     - AIRFLOW__AUTH_MANAGER__COMMON__ADMIN_USERNAME=${AIRFLOW_USERNAME:-admin}
     - AIRFLOW__AUTH_MANAGER__COMMON__ADMIN_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
