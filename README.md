@@ -109,38 +109,16 @@ A composite score (0-100) determining if gold is undervalued or overvalued:
 *   Docker & Docker Compose
 *   *Optional:* GCP Account and Terraform (for Cloud mode)
 
-### 1. Initialize Infrastructure
-
-#### Local Development (Quickstart)
-The easiest way to run the pipeline locally is via the provided `run.sh` script, which handles `uv` installation and environment synchronization automatically:
+### 1. Run Locally (Quickstart)
+The provided `run.sh` script handles `uv` installation, environment synchronization, and executes the full pipeline automatically:
 ```bash
 chmod +x run.sh
 ./run.sh
 ```
+*(Note: If you encounter DuckDB permission errors, fix them with `chmod -R 777 gold_dbt/data/ logs/`)*
 
-#### Manual Local Setup:
-```bash
-# Ensure uv is installed
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source $HOME/.local/bin/env
-
-# Install dependencies
-uv sync
-
-# Fix permissions for DuckDB (if needed)
-chmod -R 777 gold_dbt/data/ logs/
-```
-
-#### Cloud Mode (GCP):
-```bash
-cd infrastructure/terraform
-terraform init
-terraform apply # Requires project_id in terraform.tfvars
-```
-
-### 2. Run the Full Pipeline
-
-#### Via Docker (Full Stack):
+### 2. Run via Docker (Full Stack with Airflow)
+This starts the entire ecosystem, including the Airflow orchestrator:
 ```bash
 # Ensure directories exist for volume mounting
 mkdir -p gold_dbt/dbt_packages gold_dbt/target logs
@@ -149,7 +127,14 @@ chmod -R 777 gold_dbt/ logs/
 make docker-up
 ```
 
-### 3. Explore Analytics
+### 3. Deploy to Cloud (GCP)
+```bash
+cd infrastructure/terraform
+terraform init
+terraform apply # Requires project_id in terraform.tfvars
+```
+
+### 4. Explore Analytics
 *   **Dashboard:** `make dashboard` (http://localhost:8501)
 *   **dbt Docs:** `make docs` (http://localhost:8082)
 *   **Airflow UI:** http://localhost:8080 (User: `admin` | Pass: generated or `.env`)
