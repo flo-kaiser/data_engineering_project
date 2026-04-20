@@ -3,6 +3,7 @@ import duckdb
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import os
 from datetime import datetime
 
 # --- Page Configuration ---
@@ -31,7 +32,23 @@ st.markdown("""
 # --- Data Loading ---
 @st.cache_data
 def load_data():
-    con = duckdb.connect('gold_dbt/data/gold_market.duckdb')
+    # Try environment variable first, then fallback to common local paths
+    db_path = os.getenv('DUCKDB_PATH')
+    if not db_path:
+        # Check which file actually exists
+        paths_to_try = [
+            'gold_dbt/data/gold_market_local.duckdb',
+            'gold_dbt/data/gold_market.duckdb'
+        ]
+        for p in paths_to_try:
+            if os.path.exists(p):
+                db_path = p
+                break
+        
+    if not db_path:
+        db_path = 'gold_dbt/data/gold_market.duckdb' # Final default
+
+    con = duckdb.connect(db_path)
     
     # Load Daily Gold Prices for higher resolution
     df_daily = con.execute("SELECT * FROM main.stg_gold_prices ORDER BY price_date ASC").df()

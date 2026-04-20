@@ -17,4 +17,4 @@ node_modules/
 .DS_Store
 *.duckdb-journal
 *.duckdb.tmp
-gold_dbt/data/gold_market_local.duckdb
+# gold_dbt/data/gold_market_local.duckdb  <-- Removed this ignore rule
