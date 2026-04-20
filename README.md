@@ -35,8 +35,9 @@ graph TD
     IM[GoldIngestor Python]:::process
 
     subgraph Storage [Lakehouse Storage]
-        DB[(Local DuckDB)]:::dev
-        GCS[(GCP Cloud Storage)]:::prod
+        Local_Parquet[(Local Parquet Lake)]:::dev
+        DB[(DuckDB Database)]:::dev
+        GCS[(GCS Bronze Lake)]:::prod
         BQ[(BigQuery Warehouse)]:::prod
     end
 
@@ -45,7 +46,8 @@ graph TD
     end
 
     API --> IM
-    IM -- "env: local" --> DB
+    IM -- "env: local" --> Local_Parquet
+    Local_Parquet -- "Parquet Views" --> DB
     IM -- "env: prod" --> GCS
     GCS -- "BigQuery Load" --> BQ
 
