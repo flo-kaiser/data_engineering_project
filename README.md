@@ -66,7 +66,7 @@ graph TD
 
 | Layer | Technology | Purpose |
 |:--- | :--- | :--- |
-| **Ingestion** | Python (`GoldIngestor`) | Fetches 10+ time-series with exponential backoff retries. Idempotent Upserts. |
+| **Ingestion** | Python (`GoldIngestor`) | Fetches key macro time-series with exponential backoff retries. Idempotent Upserts. |
 | **Bronze** | GCS / Parquet | Raw, immutable data snapshots tracking full market history. |
 | **Silver** | dbt (Staging) | Unit normalization (Ounces to Tonnes), deduplication, and schema enforcement. |
 | **Gold** | dbt (Marts) | High-level analytics: Rolling Pearson Correlations and the Gold Valuation Index. |
