@@ -24,9 +24,6 @@ x-airflow-common:
     - .:/app
     - ./dags:/usr/local/airflow/dags
     - airflow_data:/usr/local/airflow
-  depends_on:
-    postgres:
-      condition: service_healthy
 
 services:
   postgres:
@@ -54,14 +51,9 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    command: uv run airflow webserver
+    command: uv run airflow api-server
     ports:
       - "8080:8080"
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,6 +72,15 @@ services:
   airflow-triggerer:
     <<: *airflow-common
     command: uv run airflow triggerer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: uv run airflow dag-processor
     depends_on:
       postgres:
         condition: service_healthy
