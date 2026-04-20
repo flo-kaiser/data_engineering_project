@@ -211,9 +211,13 @@ __marimo__/
 # Project specific data
 data/
 xls/
+auth/
 *.duckdb
 *.parquet
 GEMINI.md
+*.json_key
+service-account-key.json
+infrastructure/terraform/*.json
 
 # Terraform
 .terraform/

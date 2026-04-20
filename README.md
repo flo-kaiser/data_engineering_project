@@ -118,6 +118,12 @@ make install
 cd infrastructure/terraform
 terraform init
 terraform apply # Requires project_id in terraform.tfvars
+
+# Create Service Account Key via CLI:
+# Replace [PROJECT_ID] with your actual GCP Project ID
+mkdir -p ../../auth
+gcloud iam service-accounts keys create ../../auth/service_account.json \
+    --iam-account=gold-pipeline-runner@[PROJECT_ID].iam.gserviceaccount.com
 ```
 
 ### 2. Run the Full Pipeline
