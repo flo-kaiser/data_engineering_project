@@ -131,6 +131,6 @@ make get-airflow-pass # Retrieve the generated admin password
 ### 3. Explore Analytics
 *   **Dashboard:** `make dashboard` (http://localhost:8501)
 *   **dbt Docs:** `make docs` (http://localhost:8082)
-*   **Airflow UI:** http://localhost:8080 (User: `admin`)
+*   **Airflow UI:** http://localhost:8080 (User: `admin` | Pass: `admin123` or `.env`)
 
 ---

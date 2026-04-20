@@ -14,13 +14,12 @@ x-airflow-common:
     - GCP_KEYFILE_PATH=/app/auth/service_account.json
     - AIRFLOW_HOME=/usr/local/airflow
     - AIRFLOW__CORE__FERNET_KEY=fS3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_M=
-    # Airflow 3 nutzt jetzt [api] secret_key statt [webserver]
-    - AIRFLOW__API__SECRET_KEY=stabile_geheimnis_taste_123
+    - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    # Airflow 3 Native Auth (Simple Auth Manager)
+    - AIRFLOW__AUTH_MANAGER__COMMON__ADMIN_USERNAME=${AIRFLOW_USERNAME:-admin}
+    - AIRFLOW__AUTH_MANAGER__COMMON__ADMIN_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
+    # Legacy support for some Airflow versions
     - AIRFLOW_STANDALONE_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
-    # To set the initial user, standalone mode uses standalone_admin_password.txt or we can use CLI.
-    # For many images, we can set the default login like this:
-    - _AIRFLOW_WWW_USER_USERNAME=${AIRFLOW_USERNAME:-admin}
-    - _AIRFLOW_WWW_USER_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
   volumes:
     - .:/app
     - ./dags:/usr/local/airflow/dags
@@ -29,10 +28,7 @@ x-airflow-common:
 services:
   airflow:
     <<: *airflow-common
-    command: >
-      bash -c "
-      echo \"${AIRFLOW_PASSWORD:-admin123}\" > /usr/local/airflow/standalone_admin_password.txt &&
-      uv run airflow standalone"
+    command: uv run airflow standalone
     ports:
       - "8080:8080"
 
