@@ -6,4 +6,4 @@ gold_dbt/target/
 gold_dbt/dbt_packages/
 gold_dbt/logs/
 logs/
-data/
+/data/
