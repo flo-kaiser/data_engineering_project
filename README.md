@@ -110,35 +110,53 @@ A composite score (0-100) determining if gold is undervalued or overvalued:
 *   *Optional:* GCP Account and Terraform (for Cloud mode)
 
 ### 1. Initialize Infrastructure
-```bash
-# Local Mode:
-make install
 
-# Cloud Mode (GCP):
+#### Local Development (Quickstart)
+The easiest way to run the pipeline locally is via the provided `run.sh` script, which handles `uv` installation and environment synchronization automatically:
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+#### Manual Local Setup:
+```bash
+# Ensure uv is installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env
+
+# Install dependencies
+uv sync
+
+# Fix permissions for DuckDB (if needed)
+chmod -R 777 gold_dbt/data/ logs/
+```
+
+#### Cloud Mode (GCP):
+```bash
 cd infrastructure/terraform
 terraform init
 terraform apply # Requires project_id in terraform.tfvars
-
-# Create Service Account Key via CLI:
-# Replace [PROJECT_ID] with your actual GCP Project ID
-mkdir -p ../../auth
-gcloud iam service-accounts keys create ../../auth/service_account.json \
-    --iam-account=gold-pipeline-runner@[PROJECT_ID].iam.gserviceaccount.com
 ```
 
 ### 2. Run the Full Pipeline
+
+#### Via Docker (Full Stack):
 ```bash
-# Via Makefile (Full Stack with Airflow & Postgres):
+# Ensure directories exist for volume mounting
+mkdir -p gold_dbt/dbt_packages gold_dbt/target logs
+chmod -R 777 gold_dbt/ logs/
+
 make docker-up
-
-# Access Airflow at http://localhost:8080 (admin / see password in logs)
-```bash
-# Retrieve the generated admin password:
-docker exec data_engineering_project-airflow-1 cat /usr/local/airflow/standalone_admin_password.txt
-```
 ```
 
-### 3. Explore Analytics
+### 🛑 Troubleshooting
+
+**Permission Denied (DuckDB):**
+If you encounter `IO Error: Cannot open file ... Permission denied`, the database file might be owned by `root` (from a previous Docker run). 
+Fix it with: `sudo chown -R $USER:$USER gold_dbt/data/` or delete the file to let the pipeline recreate it.
+
+**uv: command not found:**
+Ensure you have run `source $HOME/.local/bin/env` after installing `uv` or use the absolute path `~/.local/bin/uv`.
 *   **Dashboard:** `make dashboard` (http://localhost:8501)
 *   **dbt Docs:** `make docs` (http://localhost:8082)
 *   **Airflow UI:** http://localhost:8080 (User: `admin` | Pass: generated or `.env`)
