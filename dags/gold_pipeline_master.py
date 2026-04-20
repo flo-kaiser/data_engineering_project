@@ -45,6 +45,7 @@ with DAG(
     schedule='@daily',
     start_date=datetime(2026, 1, 1),
     catchup=False,
+    max_active_runs=1,
     tags=['gold', 'finance', 'dbt', 'api-driven'],
 ) as dag:
 

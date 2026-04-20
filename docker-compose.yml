@@ -15,16 +15,15 @@ x-airflow-common:
     - AIRFLOW_HOME=/usr/local/airflow
     - AIRFLOW__CORE__FERNET_KEY=fS3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_M=
     - AIRFLOW__CORE__LOAD_EXAMPLES=False
-    - AIRFLOW_STANDALONE_PASSWORD=${AIRFLOW_PASSWORD}
-    - _AIRFLOW_WWW_USER_PASSWORD=${AIRFLOW_PASSWORD}
+    # Passwort-Variablen entfernt, um Auto-Generierung durch Airflow zu erzwingen
     - _AIRFLOW_WWW_USER_USERNAME=${AIRFLOW_USERNAME:-admin}
-    volumes:
+  volumes:
     - .:/app
     - ./dags:/usr/local/airflow/dags:ro
     - airflow_data:/usr/local/airflow
 
-    services:
-    airflow:
+services:
+  airflow:
     <<: *airflow-common
     command: >
       bash -c "
