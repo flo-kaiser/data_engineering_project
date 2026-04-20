@@ -28,7 +28,11 @@ x-airflow-common:
 services:
   airflow:
     <<: *airflow-common
-    command: uv run airflow standalone
+    command: >
+      bash -c "
+      mkdir -p /usr/local/airflow &&
+      echo \"${AIRFLOW_PASSWORD:-admin123}\" > /usr/local/airflow/standalone_admin_password.txt &&
+      uv run airflow standalone"
     ports:
       - "8080:8080"
 
