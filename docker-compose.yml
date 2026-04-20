@@ -64,7 +64,11 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
-    command: uv run airflow scheduler
+    command: >
+      bash -c "
+      echo 'Waiting for api-server...';
+      until curl -s http://airflow-webserver:8080/health; do sleep 2; done;
+      uv run airflow scheduler"
     depends_on:
       postgres:
         condition: service_healthy
