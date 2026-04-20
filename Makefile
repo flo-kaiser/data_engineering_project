@@ -2,12 +2,13 @@
 
 SHELL := /bin/bash
 
-.PHONY: help install pipeline dashboard docs docker-up docker-down clean
+.PHONY: help install run-local pipeline dashboard docs docker-up docker-down clean
 
 help:
 	@echo "🏆 Gold Intelligence Framework - Command Center"
 	@echo "Usage:"
 	@echo "  make install      Install dependencies using uv"
+	@echo "  make run-local    Initialize environment and run pipeline locally (Quickstart)"
 	@echo "  make pipeline     Run the full ingestion and transformation pipeline"
 	@echo "  make dashboard    Launch the Streamlit dashboard"
 	@echo "  make docs         Generate and serve dbt documentation"
@@ -17,6 +18,10 @@ help:
 
 install:
 	uv sync
+
+run-local:
+	chmod +x run.sh
+	./run.sh
 
 pipeline:
 	uv run python main.py

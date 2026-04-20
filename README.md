@@ -110,19 +110,21 @@ A composite score (0-100) determining if gold is undervalued or overvalued:
 *   *Optional:* GCP Account and Terraform (for Cloud mode)
 
 ### 1. Run Locally (Quickstart)
-The provided `run.sh` script handles `uv` installation, environment synchronization, and executes the full pipeline automatically:
+The easiest way to run the pipeline locally is via the `Makefile`. This handles `uv` installation, environment synchronization, and executes the full pipeline automatically:
 ```bash
-chmod +x run.sh
-./run.sh
+make run-local
 ```
-*(Note: If you encounter DuckDB permission errors, fix them with `chmod -R 777 gold_dbt/data/ logs/`)*
+*(Note: If you encounter DuckDB permission errors from previous Docker runs, fix them by reclaiming file ownership with `sudo chown -R $USER:$USER gold_dbt/data/ logs/`)*
 
 ### 2. Run via Docker (Full Stack with Airflow)
 This starts the entire ecosystem, including the Airflow orchestrator:
 ```bash
 # Ensure directories exist for volume mounting
 mkdir -p gold_dbt/dbt_packages gold_dbt/target logs
-chmod -R 777 gold_dbt/ logs/
+
+# Tip: If dbt fails to write into mounted volumes, it is often due to Docker running as root.
+# Reclaim ownership on the host machine after a run if needed:
+# sudo chown -R $USER:$USER gold_dbt/ logs/
 
 make docker-up
 ```
@@ -131,7 +133,9 @@ make docker-up
 ```bash
 cd infrastructure/terraform
 terraform init
-terraform apply # Requires project_id in terraform.tfvars
+# Copy the example variables file and fill in your project details
+cp terraform.tfvars.example terraform.tfvars
+terraform apply
 ```
 
 ### 4. Explore Analytics
