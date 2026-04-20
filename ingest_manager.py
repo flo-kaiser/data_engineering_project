@@ -124,11 +124,11 @@ class GoldIngestor:
 
     def _save_data(self, df: pd.DataFrame, table_name: str, source_id: str):
         if self.env == 'local':
-            # Use relative paths with explicit ./ for consistent resolution across OS types
-            file_path = os.path.join(self.local_data_dir, f"{table_name}.parquet")
+            # Use absolute paths so dbt (running in a subfolder) can always find the files
+            file_path = os.path.abspath(os.path.join(self.local_data_dir, f"{table_name}.parquet"))
             df.to_parquet(file_path, index=False)
             self.con.execute(f"DROP VIEW IF EXISTS bronze.{table_name}")
-            self.con.execute(f"CREATE VIEW bronze.{table_name} AS SELECT * FROM read_parquet('./{file_path}')")
+            self.con.execute(f"CREATE VIEW bronze.{table_name} AS SELECT * FROM read_parquet('{file_path}')")
             self._update_metadata(source_id, table_name, len(df), "SUCCESS")
         else:
             # Cloud: 1. GCS, 2. BigQuery
