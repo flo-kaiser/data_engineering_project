@@ -14,5 +14,5 @@ output "service_account_email" {
 }
 
 output "instructions" {
-  value = "Next step: Run 'gcloud iam service-accounts keys create sa-key.json --iam-account=${google_service_account.pipeline_sa.email}' to generate your credential file."
+  value = "Next step: Run 'gcloud iam service-accounts keys create ../../auth/service_account.json --iam-account=${google_service_account.pipeline_sa.email}' to generate your credential file."
 }
