@@ -109,6 +109,13 @@ A composite score (0-100) determining if gold is undervalued or overvalued:
 *   Docker & Docker Compose
 *   *Optional:* GCP Account and Terraform (for Cloud mode)
 
+### Environment Setup
+Before running the pipeline (locally or via Docker), ensure your environment variables are configured. The project includes an example file with secure defaults:
+```bash
+cp .env.example .env
+```
+*(Modify `.env` if you need to connect to a specific GCP project or change default local paths.)*
+
 ### 1. Run Locally (Quickstart)
 The easiest way to run the pipeline locally is via the `Makefile`. This handles `uv` installation, environment synchronization, and executes the full pipeline automatically:
 ```bash
