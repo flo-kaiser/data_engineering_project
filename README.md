@@ -22,31 +22,40 @@ However, monitoring this market is complex. Data is scattered across the **World
 
 ```mermaid
 graph TD
-    subgraph "Data Sources (API-Driven)"
-        IMF[IMF API]
-        WB[World Bank API]
-        FED[FED/H15 API]
-        YF[Yahoo Finance]
+    classDef source fill:#b3e5fc,stroke:#01579b,stroke-width:2px,color:#01579b;
+    classDef dev fill:#e1bee7,stroke:#4a148c,stroke-width:2px,color:#4a148c;
+    classDef prod fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#827717;
+    classDef process fill:#ffe0b2,stroke:#e65100,stroke-width:2px,color:#bf360c;
+    classDef viz fill:#b2dfdb,stroke:#004d40,stroke-width:2px,color:#004d40;
+
+    subgraph Sources [External APIs]
+        API[IMF, WB, FED, Yahoo Finance]:::source
     end
 
-    IMF & WB & FED & YF --> IM[GoldIngestor Python]
+    IM[GoldIngestor Python]:::process
 
-    subgraph "Continuous Local Pipeline (Dev)"
-        IM -- "Local Mode" --> Local_DB[(DuckDB)]
-        Local_DB -- "dbt dev" --> STG_L[Silver: Staging]
-        STG_L --> GOLD_L[Gold: Marts]
-        GOLD_L --> SL_L[Streamlit Dashboard]
+    subgraph Storage [Lakehouse Storage]
+        DB[(Local DuckDB)]:::dev
+        GCS[(GCP Cloud Storage)]:::prod
+        BQ[(BigQuery Warehouse)]:::prod
     end
 
-    subgraph "Continuous Cloud Pipeline (Prod)"
-        IM -- "Prod Mode" --> GCS[(GCS Bronze Lake)]
-        GCS -- "BigQuery Load" --> BQ[(BigQuery DWH)]
-        BQ -- "dbt prod" --> STG_C[Silver: Staging]
-        STG_C --> GOLD_C[Gold: Marts]
-        GOLD_C --> SL_C[Streamlit Dashboard]
+    subgraph Transform [Transformation Layer]
+        DBT[dbt Core]:::process
     end
 
-    Airflow(Airflow Orchestrator) -. "Triggers Ingestion & dbt" .-> IM
+    API --> IM
+    IM -- "env: local" --> DB
+    IM -- "env: prod" --> GCS
+    GCS -- "BigQuery Load" --> BQ
+
+    DB --> DBT
+    BQ --> DBT
+
+    DBT --> Dashboard[Streamlit Dashboard]:::viz
+    DBT --> Docs[dbt Data Catalog]:::viz
+
+    Airflow(Airflow Orchestrator):::process -. "Triggers Pipeline" .-> IM
 ```
 
 ---
