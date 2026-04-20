@@ -37,8 +37,8 @@ class GoldIngestor:
     def __init__(self):
         self.env = os.getenv('ENVIRONMENT', 'local').lower()
         self.db_path = os.getenv('DUCKDB_PATH', 'gold_dbt/data/gold_market.duckdb')
-        self.local_data_dir = os.getenv('LOCAL_DATA_DIR', 'data/bronze')
-        self.bucket_name = os.getenv('GCS_BUCKET_NAME')
+        # Use a path that is predictable for both host and container
+        self.local_data_dir = 'data/bronze' 
         
         if self.env == 'local':
             os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
@@ -124,10 +124,11 @@ class GoldIngestor:
 
     def _save_data(self, df: pd.DataFrame, table_name: str, source_id: str):
         if self.env == 'local':
-            file_path = os.path.abspath(os.path.join(self.local_data_dir, f"{table_name}.parquet"))
+            # Use relative paths with explicit ./ for consistent resolution across OS types
+            file_path = os.path.join(self.local_data_dir, f"{table_name}.parquet")
             df.to_parquet(file_path, index=False)
             self.con.execute(f"DROP VIEW IF EXISTS bronze.{table_name}")
-            self.con.execute(f"CREATE VIEW bronze.{table_name} AS SELECT * FROM read_parquet('{file_path}')")
+            self.con.execute(f"CREATE VIEW bronze.{table_name} AS SELECT * FROM read_parquet('./{file_path}')")
             self._update_metadata(source_id, table_name, len(df), "SUCCESS")
         else:
             # Cloud: 1. GCS, 2. BigQuery

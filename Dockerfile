@@ -37,11 +37,6 @@ RUN uv sync --no-dev
 # Copy the application code
 COPY . .
 
-# --- Cloud Run Optimization: Pre-build Data ---
-# This runs the ingestion and transformation during build time
-# so the image is "ready-to-serve" instantly.
-RUN uv run python main.py
-
 # Expose port for Streamlit
 EXPOSE 8501
 
