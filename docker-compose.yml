@@ -15,7 +15,6 @@ x-airflow-common:
     - AIRFLOW_HOME=/usr/local/airflow
     - AIRFLOW__CORE__FERNET_KEY=fS3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_M=
     - AIRFLOW__CORE__LOAD_EXAMPLES=False
-    # Passwort-Variablen entfernt, um Auto-Generierung durch Airflow zu erzwingen
     - _AIRFLOW_WWW_USER_USERNAME=${AIRFLOW_USERNAME:-admin}
   volumes:
     - .:/app
