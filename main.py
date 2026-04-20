@@ -10,7 +10,7 @@ from ingest_manager import GoldIngestor
 from config import SERIES_MAP, EXCEL_MAP, YFINANCE_MAP
 
 # --- Load Environment Variables ---
-load_dotenv()
+load_dotenv(override=True)
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
 DBT_TARGET = os.getenv("DBT_TARGET", "dev")
 
