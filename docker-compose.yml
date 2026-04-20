@@ -5,7 +5,7 @@ x-airflow-common:
   build: .
   environment:
     - ENVIRONMENT=${ENVIRONMENT:-local}
-    - DUCKDB_PATH=/app/data/gold_market.duckdb
+    - DUCKDB_PATH=/app/gold_dbt/data/gold_market.duckdb
     - PYTHONPATH=/app
     - DBT_TARGET=${DBT_TARGET:-dev}
     - GCP_PROJECT_ID=${GCP_PROJECT_ID}
