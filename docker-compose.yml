@@ -15,81 +15,24 @@ x-airflow-common:
     - AIRFLOW_HOME=/usr/local/airflow
     - AIRFLOW__CORE__FERNET_KEY=fS3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_M=
     - AIRFLOW__CORE__LOAD_EXAMPLES=False
-    - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
-    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres/${POSTGRES_DB:-airflow}
-    # Airflow 3 Native Auth (Simple Auth Manager)
-    - AIRFLOW__AUTH_MANAGER__COMMON__ADMIN_USERNAME=${AIRFLOW_USERNAME:-admin}
-    - AIRFLOW__AUTH_MANAGER__COMMON__ADMIN_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
+    - AIRFLOW__API__SECRET_KEY=stabile_geheimnis_taste_123
+    - AIRFLOW_STANDALONE_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
+    - _AIRFLOW_WWW_USER_USERNAME=${AIRFLOW_USERNAME:-admin}
+    - _AIRFLOW_WWW_USER_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
   volumes:
     - .:/app
     - ./dags:/usr/local/airflow/dags:ro
-    - airflow_data:/usr/local/airflow/db
+    - airflow_data:/usr/local/airflow
 
 services:
-  postgres:
-    image: postgres:13
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-airflow}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-airflow}
-      - POSTGRES_DB=${POSTGRES_DB:-airflow}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-airflow}"]
-      interval: 5s
-      retries: 5
-
-  airflow-init:
+  airflow:
     <<: *airflow-common
     command: >
       bash -c "
-      uv run airflow db migrate &&
-      uv run airflow users create -u \"${AIRFLOW_USERNAME:-admin}\" -p \"${AIRFLOW_PASSWORD:-admin123}\" -r Admin -e admin@example.com -f Admin -l User || true"
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  airflow-webserver:
-    <<: *airflow-common
-    command: uv run airflow api-server --host 0.0.0.0
+      echo \"${AIRFLOW_PASSWORD:-admin123}\" > /usr/local/airflow/standalone_admin_password.txt &&
+      uv run airflow standalone"
     ports:
       - "8080:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
-
-  airflow-scheduler:
-    <<: *airflow-common
-    command: >
-      bash -c "
-      echo 'Waiting for api-server...';
-      until curl -s http://airflow-webserver:8080/health; do sleep 2; done;
-      uv run airflow scheduler"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
-
-  airflow-triggerer:
-    <<: *airflow-common
-    command: uv run airflow triggerer
-    depends_on:
-      postgres:
-        condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
-
-  airflow-dag-processor:
-    <<: *airflow-common
-    command: uv run airflow dag-processor
-    depends_on:
-      postgres:
-        condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
 
   dashboard:
     <<: *airflow-common
@@ -114,4 +57,3 @@ services:
 volumes:
   gold_data:
   airflow_data:
-  postgres_data:
