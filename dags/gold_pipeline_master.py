@@ -73,5 +73,5 @@ with DAG(
         bash_command='cd /app/gold_dbt && uv run dbt test --target dev',
     )
 
-    # Lineage: Ingestion (Parallel) -> Transformation (Sequential)
-    [task_ingest_api, task_ingest_indicators] >> task_dbt_run >> task_dbt_test
+    # Lineage: Sequential Ingestion to prevent DuckDB locking issues
+    task_ingest_api >> task_ingest_indicators >> task_dbt_run >> task_dbt_test
