@@ -6,7 +6,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/usr/local/venv \
     AIRFLOW_HOME=/usr/local/airflow \
-    DUCKDB_PATH=/app/data/gold_market.duckdb \
+    DUCKDB_PATH=/app/gold_dbt/data/gold_market.duckdb \
     DBT_TARGET=dev \
     ENVIRONMENT=local
 
@@ -24,8 +24,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Set work directory
 WORKDIR /app
 
-# Create required directories
-RUN mkdir -p /app/data /usr/local/airflow/dags
+# Create required directories (for Airflow dags)
+RUN mkdir -p /usr/local/airflow/dags
 
 # Copy project files
 COPY pyproject.toml .
