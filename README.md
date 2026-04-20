@@ -14,7 +14,7 @@
 
 In institutional finance, Gold is not just a commodity; it is a **"Currency without a Country"**. Its value is driven primarily by the **Real Interest Rate (10Y TIPS)**. When real rates are negative, the opportunity cost of holding gold vanishes, making it the ultimate safe haven.
 
-However, monitoring this market is complex. Data is scattered across the **World Bank**, the **IMF** (Reserves), the **Federal Reserve** (Rates), and market exchanges. The **Gold Intelligence Framework** automates the entire lifecycle of this data, from raw API ingestion to a sophisticated analytical layer that identifies market regimes using rolling correlations and a composite valuation index.
+However, monitoring this market is complex. Data is scattered across the **World Bank**, the **IMF** (Reserves), and the **Federal Reserve** (Rates). The **Gold Intelligence Framework** aggregates these disparate sources via the **DBnomics API** and market exchanges, automating the entire lifecycle from raw ingestion to a sophisticated analytical layer.
 
 ---
 
@@ -29,7 +29,8 @@ graph TD
     classDef viz fill:#b2dfdb,stroke:#004d40,stroke-width:2px,color:#004d40;
 
     subgraph Sources [External APIs]
-        API[IMF, WB, FED, Yahoo Finance]:::source
+        API[DBnomics - IMF/WB/FED]:::source
+        YF[Yahoo Finance - Markets]:::source
     end
 
     IM[GoldIngestor Python]:::process
@@ -46,6 +47,7 @@ graph TD
     end
 
     API --> IM
+    YF --> IM
     IM -- "env: local" --> Local_Parquet
     Local_Parquet -- "Parquet Views" --> DB
     IM -- "env: prod" --> GCS
@@ -66,7 +68,7 @@ graph TD
 
 | Layer | Technology | Purpose |
 |:--- | :--- | :--- |
-| **Ingestion** | Python (`GoldIngestor`) | Fetches key macro time-series with exponential backoff retries. Idempotent Upserts. |
+| **Ingestion** | `GoldIngestor` (DBnomics, yFinance) | Fetches key macro time-series (IMF, WB, FED) with exponential backoff retries. |
 | **Bronze** | GCS / Parquet | Raw, immutable data snapshots tracking full market history. |
 | **Silver** | dbt (Staging) | Unit normalization (Ounces to Tonnes), deduplication, and schema enforcement. |
 | **Gold** | dbt (Marts) | High-level analytics: Rolling Pearson Correlations and the Gold Valuation Index. |
@@ -123,12 +125,16 @@ terraform apply # Requires project_id in terraform.tfvars
 # Via Makefile (Full Stack with Airflow & Postgres):
 make docker-up
 
-# Access Airflow at http://localhost:8080 (admin / admin123)
+# Access Airflow at http://localhost:8080 (admin / see password in logs)
+```bash
+# Retrieve the generated admin password:
+docker exec data_engineering_project-airflow-1 cat /usr/local/airflow/standalone_admin_password.txt
+```
 ```
 
 ### 3. Explore Analytics
 *   **Dashboard:** `make dashboard` (http://localhost:8501)
 *   **dbt Docs:** `make docs` (http://localhost:8082)
-*   **Airflow UI:** http://localhost:8080 (User: `admin` | Pass: `admin123` or `.env`)
+*   **Airflow UI:** http://localhost:8080 (User: `admin` | Pass: generated or `.env`)
 
 ---

@@ -15,21 +15,19 @@ x-airflow-common:
     - AIRFLOW_HOME=/usr/local/airflow
     - AIRFLOW__CORE__FERNET_KEY=fS3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_S-S3v9_M=
     - AIRFLOW__CORE__LOAD_EXAMPLES=False
-    - AIRFLOW__API__SECRET_KEY=stabile_geheimnis_taste_123
-    - AIRFLOW_STANDALONE_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
+    - AIRFLOW_STANDALONE_PASSWORD=${AIRFLOW_PASSWORD}
+    - _AIRFLOW_WWW_USER_PASSWORD=${AIRFLOW_PASSWORD}
     - _AIRFLOW_WWW_USER_USERNAME=${AIRFLOW_USERNAME:-admin}
-    - _AIRFLOW_WWW_USER_PASSWORD=${AIRFLOW_PASSWORD:-admin123}
-  volumes:
+    volumes:
     - .:/app
     - ./dags:/usr/local/airflow/dags:ro
     - airflow_data:/usr/local/airflow
 
-services:
-  airflow:
+    services:
+    airflow:
     <<: *airflow-common
     command: >
       bash -c "
-      echo \"${AIRFLOW_PASSWORD:-admin123}\" > /usr/local/airflow/standalone_admin_password.txt &&
       uv run airflow standalone"
     ports:
       - "8080:8080"
