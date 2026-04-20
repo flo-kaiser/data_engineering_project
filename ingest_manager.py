@@ -60,12 +60,14 @@ class GoldIngestor:
             self.bucket_name = os.getenv('GCS_BUCKET_NAME')
             if not self.bucket_name:
                 raise ValueError("GCS_BUCKET_NAME environment variable is required in PROD mode")
+            self._setup_warehouse()
             logger.info(f"Initialized GoldIngestor in PROD mode (BQ: {self.bq_client.project})")
 
     def _setup_warehouse(self):
         """
-        Sets up the local DuckDB warehouse by creating the bronze schema and metadata table.
-        DuckDB only - BigQuery schemas are assumed to exist.
+        Sets up the warehouse by creating the metadata table.
+        For local: creates bronze schema and table in DuckDB.
+        For prod: creates table in BigQuery if it doesn't exist.
         """
         if self.env == 'local':
             self.con.execute("CREATE SCHEMA IF NOT EXISTS bronze")
@@ -79,6 +81,28 @@ class GoldIngestor:
                     error_message VARCHAR
                 )
             """)
+        else:
+            dataset_id = os.getenv('GCP_DATASET', 'gold_analytics')
+            table_id = f"{self.bq_client.project}.{dataset_id}.ingestion_metadata"
+            
+            schema = [
+                bigquery.SchemaField("source_id", "STRING", mode="NULLABLE"),
+                bigquery.SchemaField("target_table", "STRING", mode="NULLABLE"),
+                bigquery.SchemaField("last_updated", "TIMESTAMP", mode="NULLABLE"),
+                bigquery.SchemaField("row_count", "INTEGER", mode="NULLABLE"),
+                bigquery.SchemaField("status", "STRING", mode="NULLABLE"),
+                bigquery.SchemaField("error_message", "STRING", mode="NULLABLE"),
+            ]
+            
+            try:
+                self.bq_client.get_table(table_id)
+                logger.info(f"Table {table_id} already exists.")
+            except Exception:
+                logger.info(f"Table {table_id} not found, creating it...")
+                table = bigquery.Table(table_id, schema=schema)
+                self.bq_client.create_table(table)
+                logger.info(f"Created table {table_id}")
+                time.sleep(5) # Wait for BQ consistency
 
     def _fetch_with_retry(self, fetch_func: Callable, identifier: str, max_retries: int = 3, base_delay: int = 2):
         """
@@ -206,7 +230,7 @@ class GoldIngestor:
         logger.info(f"[BQ] Loaded {table_id}")
 
     def _update_metadata(self, source_id: str, table_name: str, row_count: int, status: str, error_msg: Optional[str] = None):
-        """Updates the ingestion_metadata table."""
+        """Updates the ingestion_metadata table with retry for BQ consistency."""
         now = datetime.now()
         if self.env == 'local':
             self.con.execute("INSERT INTO bronze.ingestion_metadata VALUES (?, ?, ?, ?, ?, ?)", 
@@ -216,7 +240,22 @@ class GoldIngestor:
             table_id = f"{self.bq_client.project}.{dataset_id}.ingestion_metadata"
             rows = [{"source_id": source_id, "target_table": table_name, "last_updated": now.isoformat(), 
                      "row_count": row_count, "status": status, "error_message": error_msg}]
-            self.bq_client.insert_rows_json(table_id, rows)
+            
+            # Simple retry for BQ insertion (eventual consistency)
+            for attempt in range(3):
+                try:
+                    errors = self.bq_client.insert_rows_json(table_id, rows)
+                    if not errors:
+                        break
+                    else:
+                        logger.error(f"BQ Insert errors: {errors}")
+                        break
+                except Exception as e:
+                    if attempt < 2:
+                        logger.warning(f"Metadata update failed, retrying in 2s... ({str(e)})")
+                        time.sleep(2)
+                    else:
+                        logger.error(f"Metadata update finally failed: {str(e)}")
 
     def close(self):
         """Closes the DuckDB connection."""
