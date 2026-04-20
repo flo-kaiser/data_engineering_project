@@ -22,42 +22,31 @@ However, monitoring this market is complex. Data is scattered across the **World
 
 ```mermaid
 graph TD
-    classDef source fill:#b3e5fc,stroke:#01579b,stroke-width:2px,color:#01579b;
-    classDef lake fill:#e1bee7,stroke:#4a148c,stroke-width:2px,color:#4a148c;
-    classDef warehouse fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#827717;
-    classDef orchestration fill:#f8bbd0,stroke:#880e4f,stroke-width:2px,color:#880e4f,stroke-dasharray: 5 5;
-    classDef viz fill:#b2dfdb,stroke:#004d40,stroke-width:2px,color:#004d40;
-
-    subgraph External_APIs [Data Sources]
-        IMF[IMF API]:::source
-        WB[World Bank API]:::source
-        FED[FED/H15 API]:::source
-        YF[Yahoo Finance]:::source
+    subgraph "Data Sources (API-Driven)"
+        IMF[IMF API]
+        WB[World Bank API]
+        FED[FED/H15 API]
+        YF[Yahoo Finance]
     end
 
-    IM[GoldIngestor Python]:::orchestration -- "Environment Aware" --> Local_DB
-    IM -- "Environment Aware" --> GCS
+    IMF & WB & FED & YF --> IM[GoldIngestor Python]
 
-    subgraph Local_Dev [Local Development]
-        Local_DB[(DuckDB Database)]:::lake
+    subgraph "Continuous Local Pipeline (Dev)"
+        IM -- "Local Mode" --> Local_DB[(DuckDB)]
+        Local_DB -- "dbt dev" --> STG_L[Silver: Staging]
+        STG_L --> GOLD_L[Gold: Marts]
+        GOLD_L --> SL_L[Streamlit Dashboard]
     end
 
-    subgraph GCP_Cloud [GCP Production]
-        GCS[(GCS Bronze Lake)]:::lake
-        BQ[(BigQuery Warehouse)]:::warehouse
+    subgraph "Continuous Cloud Pipeline (Prod)"
+        IM -- "Prod Mode" --> GCS[(GCS Bronze Lake)]
+        GCS -- "BigQuery Load" --> BQ[(BigQuery DWH)]
+        BQ -- "dbt prod" --> STG_C[Silver: Staging]
+        STG_C --> GOLD_C[Gold: Marts]
+        GOLD_C --> SL_C[Streamlit Dashboard]
     end
 
-    DBT[dbt Transformation Layer]:::orchestration
-    
-    Local_DB --> DBT
-    BQ --> DBT
-    GCS -- "Load" --> BQ
-
-    DBT --> SL[Streamlit Analytics Dashboard]:::viz
-    DBT --> Docs[dbt Data Catalog]:::viz
-
-    Airflow(Airflow Orchestrator):::orchestration -. "Triggers" .-> IM
-    Airflow -. "Triggers" .-> DBT
+    Airflow(Airflow Orchestrator) -. "Triggers Ingestion & dbt" .-> IM
 ```
 
 ---
@@ -84,14 +73,14 @@ GIF measures the relationship between **10Y Real Rates** and Gold Prices.
 *   **Insight:** A correlation close to `-1` confirms Gold is acting as a safe haven. A decoupling indicates a potential change in market regime.
 
 ### 2. Gold Valuation Index (GVI)
-A proprietary composite score (0-100) determining if gold is undervalued or overvalued:
+A composite score (0-100) determining if gold is undervalued or overvalued:
 *   **40% Central Bank Activity:** Measured by multi-year global reserve accumulation.
 *   **30% Currency Impact:** Strength of the Euro vs. the Dollar (Inverse DXY proxy).
 *   **30% Real Rate Sensitivity:** The strength of the negative correlation mentioned above.
 
 ---
 
-## 🚀 Engineering Excellence
+## 🚀 Engineering Features
 
 *   **Hybrid-Environment Design:** Seamlessly switch between **DuckDB** (Local) and **BigQuery** (Cloud) via `.env`.
 *   **DWH Optimization:** Marts are **partitioned and clustered** in BigQuery by `month` to minimize scan costs and maximize query speed.
@@ -134,4 +123,3 @@ make get-airflow-pass # Retrieve the generated admin password
 *   **Airflow UI:** http://localhost:8080 (User: `admin`)
 
 ---
-*Developed by Florian | Gold Intelligence Framework 2026*
