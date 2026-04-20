@@ -9,7 +9,7 @@
     materialized='table',
     partition_by={
       "field": "month",
-      "data_type": "timestamp",
+      "data_type": "date",
       "granularity": "month"
     },
     cluster_by=["month"]
@@ -59,11 +59,10 @@ SELECT
     f.avg_fx_usd_eur,
     c.rolling_corr_12m,
     -- Basic calculation for EUR-denominated Gold Price
-    (p.avg_gold_price_usd / NULLIF(f.avg_fx_usd_eur, 0)) AS gold_price_eur
+    {{ safe_divide('p.avg_gold_price_usd', 'f.avg_fx_usd_eur') }} AS gold_price_eur
 FROM base_months b
 LEFT JOIN gold_prices p ON b.month = p.month
 LEFT JOIN reserves r ON b.month = r.month
 LEFT JOIN fx f ON b.month = f.month
 LEFT JOIN correlation c ON b.month = c.month
 WHERE p.avg_gold_price_usd IS NOT NULL
-ORDER BY b.month DESC

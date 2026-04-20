@@ -4,11 +4,17 @@
     Uses IMF/World Bank proxy data or stable estimates.
 */
 
--- Da die direkte API oft instabil ist, nutzen wir hier einen robusten 
--- Ansatz für die jährliche Weltproduktion.
+WITH years AS (
+    {% if adapter.type() == 'duckdb' %}
+        SELECT CAST(range AS INT) as year_val FROM range(2010, 2027)
+    {% else %}
+        SELECT * FROM UNNEST(GENERATE_ARRAY(2010, 2026)) AS year_val
+    {% endif %}
+)
+
 SELECT 
-    range AS production_year,
+    year_val AS production_year,
     'WORLD' as region_or_country,
-    -- Wir nutzen einen Basiswert von 3500 Tonnen mit leichtem Wachstum
-    3500.0 + (range - 2010) * 20.0 as production_tonnes
-FROM range(2010, 2026)
+    -- Basiswert von 3500 Tonnen mit leichtem Wachstum
+    3500.0 + (year_val - 2010) * 20.0 as production_tonnes
+FROM years

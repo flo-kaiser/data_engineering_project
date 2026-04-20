@@ -9,7 +9,7 @@
 
 with yearly_prices as (
     select
-        date_part('year', price_date) as market_year,
+        EXTRACT(YEAR FROM price_date) as market_year,
         avg(price_usd_per_oz) as avg_gold_price_usd
     from {{ ref('stg_gold_prices') }}
     group by 1

@@ -35,7 +35,6 @@ def load_data():
     # Try environment variable first, then fallback to common local paths
     db_path = os.getenv('DUCKDB_PATH')
     if not db_path:
-        # Check which file actually exists
         paths_to_try = [
             'gold_dbt/data/gold_market_local.duckdb',
             'gold_dbt/data/gold_market.duckdb'
@@ -46,12 +45,18 @@ def load_data():
                 break
         
     if not db_path:
-        db_path = 'gold_dbt/data/gold_market.duckdb' # Final default
+        db_path = 'gold_dbt/data/gold_market.duckdb'
 
     con = duckdb.connect(db_path)
     
-    # Load Daily Gold Prices for higher resolution
-    df_daily = con.execute("SELECT * FROM main.stg_gold_prices ORDER BY price_date ASC").df()
+    # DEBUG INFO (Visible in Streamlit if it fails)
+    tables = con.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'").df()
+    if 'stg_gold_prices' not in tables['table_name'].values:
+        available_tables = ", ".join(tables['table_name'].tolist())
+        raise ValueError(f"Database '{db_path}' found, but table 'stg_gold_prices' is missing. Available tables in 'main': {available_tables}")
+
+    # Load Daily Gold Prices
+    df_daily = con.execute("SELECT * FROM stg_gold_prices ORDER BY price_date ASC").df()
     df_daily['price_date'] = pd.to_datetime(df_daily['price_date'])
 
     # Load Market Summary (Monthly)

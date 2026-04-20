@@ -1,6 +1,8 @@
 .gcloudignore
-.venv/
 .git/
+.venv/
+.terraform/
+infrastructure/terraform/.terraform/
 __pycache__/
 *.pyc
 gold_dbt/target/
@@ -17,4 +19,7 @@ node_modules/
 .DS_Store
 *.duckdb-journal
 *.duckdb.tmp
-# gold_dbt/data/gold_market_local.duckdb  <-- Removed this ignore rule
+# gold_dbt/data/gold_market_local.duckdb
+*.exe
+*.zip
+*.log

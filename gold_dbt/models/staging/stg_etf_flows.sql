@@ -10,6 +10,6 @@ with raw as (
 select
     cast(Date as date) as flow_date,
     'GLD' as ticker,
-    cast(Volume as double) as flow_tonnes, -- Proxy: Volume als Aktivitätsindikator
-    cast(Close as double) as flow_usd_mn -- Proxy: Preis als Wertindikator
+    cast(Volume as {{ type_float() }}) as flow_tonnes, -- Proxy: Volume als Aktivitätsindikator
+    cast(Close as {{ type_float() }}) as flow_usd_mn -- Proxy: Preis als Wertindikator
 from raw

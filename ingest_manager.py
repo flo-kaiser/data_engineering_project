@@ -196,8 +196,11 @@ class GoldIngestor:
             source_id: Original source ID for metadata.
         """
         if self.env == 'local':
-            # Use absolute paths so dbt (running in a subfolder) can always find the files
-            file_path = os.path.abspath(os.path.join(self.local_data_dir, f"{table_name}.parquet"))
+            # Use relative paths for portability between Host and Container
+            # Path is relative to the project root
+            file_path = os.path.join(self.local_data_dir, f"{table_name}.parquet")
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            
             df.to_parquet(file_path, index=False)
             self.con.execute(f"DROP VIEW IF EXISTS bronze.{table_name}")
             self.con.execute(f"CREATE VIEW bronze.{table_name} AS SELECT * FROM read_parquet('{file_path}')")

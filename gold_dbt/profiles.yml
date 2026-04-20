@@ -3,8 +3,8 @@ gold_dbt:
   outputs:
     dev:
       type: duckdb
-      # Wir nutzen einen Pfad, der relativ zum dbt-Projektordner funktioniert
-      path: "data/gold_market_local.duckdb"
+      # Synchronisiert mit dem Ingestor via Umgebungsvariable
+      path: "{{ env_var('DUCKDB_PATH', 'data/gold_market.duckdb') }}"
       schema: main
     prod:
       type: bigquery
@@ -13,5 +13,5 @@ gold_dbt:
       dataset: "{{ env_var('GCP_DATASET', 'gold_analytics') }}"
       threads: 4
       keyfile: "{{ env_var('GCP_KEYFILE_PATH', 'auth/service_account.json') }}"
-      location: EU
+      location: europe-west3
       priority: interactive

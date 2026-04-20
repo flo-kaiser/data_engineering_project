@@ -13,7 +13,7 @@ WITH raw AS (
 
 SELECT
     CAST(period AS DATE) AS observation_date,
-    CAST(value AS DOUBLE) AS real_rate_10y,
+    CAST(value AS {{ type_float() }}) AS real_rate_10y,
     'DBnomics: FED/H15/RIFLGFCY10_XII_N.M' AS source
 FROM raw
 WHERE value IS NOT NULL

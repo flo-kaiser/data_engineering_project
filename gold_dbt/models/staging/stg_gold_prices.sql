@@ -9,10 +9,10 @@ with raw as (
 )
 
 select
-    cast("Date" as date) as price_date,
+    cast(Date as date) as price_date,
     'USD' as currency,
-    cast("Close" as double) as price_usd_per_oz,
+    cast(Close as {{ type_float() }}) as price_usd_per_oz,
     -- Umrechnung in Tonnen
-    cast("Close" as double) * 32150.7 AS price_usd_per_ton
+    cast(Close as {{ type_float() }}) * 32150.7 AS price_usd_per_ton
 from raw
-where "Close" is not null
+where Close is not null

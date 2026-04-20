@@ -2,8 +2,9 @@ version: 2
 
 sources:
   - name: bronze
-    description: "Raw API data ingested into the bronze schema. These are Parquet-backed views."
-    schema: bronze
+    description: "Raw API data. In local mode, this is the 'bronze' schema. In PROD, it's the BigQuery dataset."
+    # Dynamic schema: uses GCP_DATASET env var if set, otherwise defaults to 'bronze'
+    schema: "{{ env_var('GCP_DATASET', 'bronze') }}"
     tables:
       - name: gold_prices_api
         description: "Historical Gold Spot Prices (USD/oz) from World Bank / Yahoo Finance."
