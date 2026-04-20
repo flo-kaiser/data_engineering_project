@@ -1,3 +1,6 @@
-# Erzwinge LF (Unix) für alle Makefiles, egal auf welchem OS
+# Auto-detect text files and perform LF normalization in the repository
+* text=auto
+
+# Force LF (Unix) for specific files that must always be LF
 Makefile text eol=lf
 *.sh text eol=lf
