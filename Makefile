@@ -1,5 +1,7 @@
 # GIF - Gold Intelligence Framework Makefile
 
+SHELL := /bin/bash
+
 .PHONY: help install pipeline dashboard docs docker-up docker-down clean
 
 help:
@@ -23,6 +25,7 @@ dashboard:
 	uv run streamlit run dashboard.py
 
 docs:
+	chmod +x generate_docs.sh
 	./generate_docs.sh
 	cd gold_dbt && uv run dbt docs serve --port 8082
 
