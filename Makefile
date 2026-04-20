@@ -27,9 +27,6 @@ docs:
 	cd gold_dbt && uv run dbt docs serve --port 8082
 
 docker-up:
-	docker-compose up -d postgres airflow-init
-	@echo "Waiting for database initialization..."
-	@sleep 10
 	docker-compose up -d
 
 docker-down:
