@@ -34,7 +34,7 @@ docker-down:
 
 get-airflow-pass:
 	@echo "🔑 Airflow Admin Password:"
-	@docker exec $$(docker ps -qf "name=airflow") cat /usr/local/airflow/standalone_admin_password.txt
+	@docker exec data_engineering_project-airflow-1 cat /usr/local/airflow/standalone_admin_password.txt
 
 clean:
 	rm -rf logs/*.log
