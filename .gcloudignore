@@ -2,12 +2,24 @@
 .git
 .gitignore
 
-# Erlaube explizit den Upload von Daten für das Dashboard Deployment
-!data/
-!gold_dbt/data/*.duckdb
-
-# Standard Ignorier-Regeln
+# Große Ordner ZUERST ignorieren
 .venv/
-node_modules/
+.venv/**
 __pycache__/
-*.pyc
+**/*.pyc
+
+# Infrastruktur & Logs ignorieren
+infrastructure/
+logs/
+gold_dbt/target/
+gold_dbt/dbt_packages/
+
+# Erlaube explizit den Upload von Daten
+!data/
+!gold_dbt/data/gold_market.duckdb
+
+# Restliche Standard-Regeln
+.gcloudignore
+.dockerignore
+uv.lock
+pyproject.toml
