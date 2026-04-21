@@ -118,7 +118,18 @@ Before running the pipeline (locally or via Docker), ensure your environment var
 ```bash
 cp .env.example .env
 ```
-*(Modify `.env` if you need to connect to a specific GCP project or change default local paths.)*
+
+#### 🔄 Switching Environments
+You can toggle the entire framework between Local and Cloud modes by modifying the `.env` file:
+
+| Variable | **Local Mode** (DuckDB) | **Cloud Mode** (BigQuery) |
+|:--- | :--- | :--- |
+| `ENVIRONMENT` | `local` | `prod` |
+| `DBT_TARGET` | `dev` | `prod` |
+| `GCP_DATASET` | `bronze` | `gold_analytics` |
+| `GCP_KEYFILE_PATH` | *(optional)* | `auth/service_account.json` |
+
+*Note: In Cloud mode, the pipeline uploads raw data to GCS and uses BigQuery for all transformations. In Local mode, everything stays on your machine using Parquet files and DuckDB.*
 
 ### 1. Run Locally (Quickstart)
 The easiest way to run the pipeline locally is via the `Makefile`. This handles `uv` installation, environment synchronization, and executes the full pipeline automatically:
