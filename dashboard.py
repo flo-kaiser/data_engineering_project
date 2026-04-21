@@ -32,104 +32,53 @@ st.markdown("""
 # --- Data Loading ---
 @st.cache_data
 def load_data():
-    env = os.getenv('ENVIRONMENT', 'local').lower()
+    # Try environment variable first, then fallback to common local paths
+    db_path = os.getenv('DUCKDB_PATH')
+    if not db_path:
+        paths_to_try = [
+            'gold_dbt/data/gold_market_local.duckdb',
+            'gold_dbt/data/gold_market.duckdb'
+        ]
+        for p in paths_to_try:
+            if os.path.exists(p):
+                db_path = p
+                break
+        
+    if not db_path:
+        db_path = 'gold_dbt/data/gold_market.duckdb'
+
+    con = duckdb.connect(db_path)
     
-    if env == 'prod':
-        # --- BigQuery Production Mode ---
-        from google.cloud import bigquery
-        
-        key_path = os.getenv('GCP_KEYFILE_PATH')
-        if key_path and os.path.exists(key_path):
-            client = bigquery.Client.from_service_account_json(key_path)
-        else:
-            client = bigquery.Client() # Uses Application Default Credentials (ADC) in Cloud Run
-            
-        dataset_id = os.getenv('GCP_DATASET', 'gold_analytics')
-        
-        def run_query(query):
-            # Replace 'main.' prefix with dataset_id for BigQuery compatibility
-            # This allows reusing the same SQL logic
-            bq_query = query.replace('main.', f'{dataset_id}.').replace('bronze.', f'{dataset_id}.')
-            # Handle potential project_id.dataset_id if needed, but usually dataset_id is enough
-            return client.query(bq_query).to_dataframe()
+    # DEBUG INFO (Visible in Streamlit if it fails)
+    tables = con.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'").df()
+    if 'stg_gold_prices' not in tables['table_name'].values:
+        available_tables = ", ".join(tables['table_name'].tolist())
+        raise ValueError(f"Database '{db_path}' found, but table 'stg_gold_prices' is missing. Available tables in 'main': {available_tables}")
 
-        df_daily = run_query("SELECT * FROM stg_gold_prices ORDER BY price_date ASC")
-        df_daily['price_date'] = pd.to_datetime(df_daily['price_date'])
+    # Load Daily Gold Prices
+    df_daily = con.execute("SELECT * FROM stg_gold_prices ORDER BY price_date ASC").df()
+    df_daily['price_date'] = pd.to_datetime(df_daily['price_date'])
 
-        df_summary = run_query("SELECT * FROM fct_market_summary ORDER BY month ASC")
-        df_summary['month'] = pd.to_datetime(df_summary['month'])
-        
-        df_valuation = run_query("SELECT * FROM fct_gold_valuation_index ORDER BY month ASC")
-        df_valuation['month'] = pd.to_datetime(df_valuation['month'])
+    # Load Market Summary (Monthly)
+    df_summary = con.execute("SELECT * FROM main.fct_market_summary ORDER BY month ASC").df()
+    df_summary['month'] = pd.to_datetime(df_summary['month'])
+    
+    # Load Valuation Index
+    df_valuation = con.execute("SELECT * FROM main.fct_gold_valuation_index ORDER BY month ASC").df()
+    df_valuation['month'] = pd.to_datetime(df_valuation['month'])
 
-        df_drivers = run_query("SELECT * FROM fct_gold_market_drivers ORDER BY market_month ASC")
-        df_drivers['market_month'] = pd.to_datetime(df_drivers['market_month'])
+    # Load Macro Drivers
+    df_drivers = con.execute("SELECT * FROM main.fct_gold_market_drivers ORDER BY market_month ASC").df()
+    df_drivers['market_month'] = pd.to_datetime(df_drivers['market_month'])
 
-        df_mining = run_query("SELECT * FROM fct_mining_vs_price ORDER BY market_year ASC")
-        
-        # Metadata check for BigQuery
-        try:
-            df_meta = run_query("SELECT * FROM ingestion_metadata ORDER BY last_updated DESC LIMIT 10")
-        except:
-            df_meta = pd.DataFrame() # Fallback if metadata table is missing
-
-        return df_daily, df_summary, df_valuation, df_drivers, df_mining, df_meta
-
-    else:
-        # --- DuckDB Local Mode ---
-        # Try environment variable first, then fallback to common local paths
-        db_path = os.getenv('DUCKDB_PATH')
-        if not db_path:
-            paths_to_try = [
-                'gold_dbt/data/gold_market_local.duckdb',
-                'gold_dbt/data/gold_market.duckdb'
-            ]
-            for p in paths_to_try:
-                if os.path.exists(p):
-                    db_path = p
-                    break
-            
-        if not db_path:
-            db_path = 'gold_dbt/data/gold_market.duckdb'
-
-        con = duckdb.connect(db_path)
-        
-        # DEBUG INFO (Visible in Streamlit if it fails)
-        tables = con.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'").df()
-        if 'stg_gold_prices' not in tables['table_name'].values:
-            available_tables = ", ".join(tables['table_name'].tolist())
-            raise ValueError(f"Database '{db_path}' found, but table 'stg_gold_prices' is missing. Available tables in 'main': {available_tables}")
-
-        # Load Daily Gold Prices
-        df_daily = con.execute("SELECT * FROM stg_gold_prices ORDER BY price_date ASC").df()
-        df_daily['price_date'] = pd.to_datetime(df_daily['price_date'])
-
-        # Load Market Summary (Monthly)
-        df_summary = con.execute("SELECT * FROM main.fct_market_summary ORDER BY month ASC").df()
-        df_summary['month'] = pd.to_datetime(df_summary['month'])
-        
-        # Load Valuation Index
-        df_valuation = con.execute("SELECT * FROM main.fct_gold_valuation_index ORDER BY month ASC").df()
-        df_valuation['month'] = pd.to_datetime(df_valuation['month'])
-
-        # Load Macro Drivers
-        df_drivers = con.execute("SELECT * FROM main.fct_gold_market_drivers ORDER BY market_month ASC").df()
-        df_drivers['market_month'] = pd.to_datetime(df_drivers['market_month'])
-
-        # Load Mining Data
-        df_mining = con.execute("SELECT * FROM main.fct_mining_vs_price ORDER BY market_year ASC").df()
-        
-        # Load Metadata
-        try:
-            df_meta = con.execute("SELECT * FROM bronze.ingestion_metadata ORDER BY last_updated DESC LIMIT 10").df()
-        except:
-            df_meta = pd.DataFrame()
-
-        con.close()
-        return df_daily, df_summary, df_valuation, df_drivers, df_mining, df_meta
+    # Load Mining Data
+    df_mining = con.execute("SELECT * FROM main.fct_mining_vs_price ORDER BY market_year ASC").df()
+    
+    con.close()
+    return df_daily, df_summary, df_valuation, df_drivers, df_mining
 
 try:
-    df_daily, df_summary, df_valuation, df_drivers, df_mining, df_meta = load_data()
+    df_daily, df_summary, df_valuation, df_drivers, df_mining = load_data()
     
     # --- Sidebar ---
     st.sidebar.title("🏆 Gold Intelligence")
@@ -240,19 +189,19 @@ try:
 
     # Ingestion Metadata / Lineage
     with st.expander("⛓️ Data Lineage & Freshness (Bronze Layer)"):
+        con = duckdb.connect('gold_dbt/data/gold_market.duckdb')
+        df_meta = con.execute("SELECT * FROM bronze.ingestion_metadata ORDER BY last_updated DESC").df()
+        con.close()
+        
         st.markdown("### Latest Ingestion Jobs")
-        if not df_meta.empty:
-            st.dataframe(df_meta, width='stretch')
-            
-            # Simple health check based on metadata
-            # BigQuery might return 'status' as a string or object
-            failed_jobs = df_meta[df_meta['status'].astype(str) == 'FAILED']
-            if not failed_jobs.empty:
-                st.warning(f"Found {len(failed_jobs)} failed ingestion jobs. Check logs for details.")
-            else:
-                st.success("All recent ingestion jobs completed successfully.")
+        st.dataframe(df_meta, width='stretch')
+        
+        # Simple health check based on metadata
+        failed_jobs = df_meta[df_meta['status'] == 'FAILED']
+        if not failed_jobs.empty:
+            st.warning(f"Found {len(failed_jobs)} failed ingestion jobs. Check logs for details.")
         else:
-            st.info("No metadata available.")
+            st.success("All recent ingestion jobs completed successfully.")
 
 except Exception as e:
     st.error(f"Error loading dashboard: {str(e)}")
