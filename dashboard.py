@@ -189,7 +189,7 @@ try:
 
     # Ingestion Metadata / Lineage
     with st.expander("⛓️ Data Lineage & Freshness (Bronze Layer)"):
-        con = duckdb.connect('gold_dbt/data/gold_market.duckdb')
+        con = duckdb.connect(db_path)
         df_meta = con.execute("SELECT * FROM bronze.ingestion_metadata ORDER BY last_updated DESC").df()
         con.close()
         
