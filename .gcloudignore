@@ -18,8 +18,7 @@ gold_dbt/dbt_packages/
 !data/
 !gold_dbt/data/gold_market.duckdb
 
-# Restliche Standard-Regeln
+# Standard Ignorier-Regeln
 .gcloudignore
 .dockerignore
-uv.lock
-pyproject.toml
+# uv.lock und pyproject.toml MÜSSEN hochgeladen werden!
