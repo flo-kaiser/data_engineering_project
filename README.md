@@ -1,6 +1,10 @@
 # 🏆 Gold Intelligence Framework (GIF)
 **An automated Data Engineering ecosystem for institutional-grade analysis of global gold markets, macro-economic drivers, and valuation regimes.**
 
+An end-to-end data pipeline that ingests macro-economic and market data from multiple APIs, loads it into DuckDB/BigQuery, transforms it with dbt, and serves analytics through a Streamlit dashboard.
+
+> **Dashboard link:** [gold-dashboard.run.app](https://gold-dashboard-615613231938.europe-west1.run.app/) (runs on embedded snapshot)
+
 ![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=for-the-badge&logo=duckdb&logoColor=black)
 ![dbt](https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white)
 ![Apache Airflow](https://img.shields.io/badge/Apache%20Airflow-017CEE?style=for-the-badge&logo=Apache%20Airflow&logoColor=white)
@@ -150,7 +154,7 @@ terraform apply
 *   **dbt Docs:** `make docs` (http://localhost:8082)
 *   **Airflow UI:** http://localhost:8080 (User: `admin`)
     *   *Password:* Airflow generates a random password on the first start. 
-    *   *Retrieve it with:* `make get-airflow-pass` (This reads the password directly from the container logs).
+    *   *Retrieve it with:* `make get-airflow-pass`
 
 ### 🛑 Troubleshooting
 
