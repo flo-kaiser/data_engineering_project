@@ -17,7 +17,7 @@ test-paths: ["tests"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
-target-path: "target_local"
+target-path: "target"
 
 # Optimized for platform independence: 
 # WSL/Linux uses /tmp, Windows uses local project dir via env var.
@@ -25,7 +25,6 @@ packages-install-path: "{{ env_var('DBT_PACKAGES_DIR', 'dbt_packages') }}"
 
 clean-targets:         # directories to be removed by `dbt clean`
   - "target"
-  - "target_local"
   - "{{ env_var('DBT_PACKAGES_DIR', 'dbt_packages') }}"
 
 
