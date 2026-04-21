@@ -76,8 +76,6 @@ models:
               min_value: -1.01
               max_value: 1.01
               inclusive: true
-              config:
-                where: "rolling_corr_12m IS NOT NULL AND NOT CAST(rolling_corr_12m AS DOUBLE) = 'NaN'::DOUBLE"
 
   - name: fct_gold_market_drivers
     description: "Monthly aggregation of macro drivers (ETF, DXY, Yields) vs Gold Price."

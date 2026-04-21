@@ -16,13 +16,13 @@
 ) }}
 
 WITH base_months AS (
-    SELECT DISTINCT date_trunc('month', price_date) AS month
+    SELECT DISTINCT {{ date_trunc('month', 'price_date') }} AS month
     FROM {{ ref('stg_gold_prices') }}
 ),
 
 gold_prices AS (
     SELECT 
-        date_trunc('month', price_date) AS month,
+        {{ date_trunc('month', 'price_date') }} AS month,
         AVG(price_usd_per_oz) AS avg_gold_price_usd,
         AVG(price_usd_per_ton) AS avg_gold_price_usd_ton
     FROM {{ ref('stg_gold_prices') }}
@@ -31,7 +31,7 @@ gold_prices AS (
 
 reserves AS (
     SELECT 
-        date_trunc('month', observation_date) AS month,
+        {{ date_trunc('month', 'observation_date') }} AS month,
         SUM(gold_reserves_tonnes) AS total_gold_reserves_tonnes
     FROM {{ ref('stg_gold_reserves_api') }}
     GROUP BY 1
@@ -39,7 +39,7 @@ reserves AS (
 
 fx AS (
     SELECT 
-        date_trunc('month', observation_date) AS month,
+        {{ date_trunc('month', 'observation_date') }} AS month,
         AVG(usd_per_eur) AS avg_fx_usd_eur
     FROM {{ ref('stg_fx_usd_eur_api') }}
     GROUP BY 1

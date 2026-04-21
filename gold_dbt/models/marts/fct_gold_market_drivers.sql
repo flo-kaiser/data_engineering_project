@@ -9,7 +9,7 @@
 
 with prices as (
     select
-        date_trunc('month', price_date) as market_month,
+        {{ date_trunc('month', 'price_date') }} as market_month,
         avg(price_usd_per_oz) as gold_price_usd
     from {{ ref('stg_gold_prices') }}
     group by 1
@@ -17,7 +17,7 @@ with prices as (
 
 etf as (
     select
-        date_trunc('month', flow_date) as market_month,
+        {{ date_trunc('month', 'flow_date') }} as market_month,
         sum(flow_usd_mn) as total_etf_flow_usd_mn
     from {{ ref('stg_etf_flows') }}
     group by 1
@@ -25,7 +25,7 @@ etf as (
 
 dxy as (
     select
-        date_trunc('month', market_date) as market_month,
+        {{ date_trunc('month', 'market_date') }} as market_month,
         avg(dxy_close) as avg_dxy
     from {{ ref('stg_dxy') }}
     group by 1
@@ -33,7 +33,7 @@ dxy as (
 
 yields as (
     select
-        date_trunc('month', market_date) as market_month,
+        {{ date_trunc('month', 'market_date') }} as market_month,
         avg(yield_10y) as avg_yield_10y
     from {{ ref('stg_yield_10y') }}
     group by 1

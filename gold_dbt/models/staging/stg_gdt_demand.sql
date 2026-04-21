@@ -6,7 +6,7 @@
 
 with months as (
     -- BigQuery standard: DATE_TRUNC(date_expression, date_part)
-    select distinct date_trunc('quarter', price_date) as quarter_date
+    select distinct {{ date_trunc('quarter', 'price_date') }} as quarter_date
     from {{ ref('stg_gold_prices') }}
 )
 

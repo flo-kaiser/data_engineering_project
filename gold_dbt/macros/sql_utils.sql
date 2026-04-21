@@ -1,3 +1,11 @@
+{% macro date_trunc(part, column) %}
+  {% if adapter.type() == 'bigquery' %}
+    DATE_TRUNC({{ column }}, {{ part | upper }})
+  {% else %}
+    DATE_TRUNC('{{ part }}', {{ column }})
+  {% endif %}
+{% endmacro %}
+
 {% macro safe_divide(numerator, denominator) %}
   {% if adapter.type() == 'bigquery' %}
     SAFE_DIVIDE({{ numerator }}, {{ denominator }})

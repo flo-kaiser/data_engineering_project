@@ -10,7 +10,7 @@
 
 WITH prices AS (
     SELECT 
-        date_trunc('month', price_date) as month,
+        {{ date_trunc('month', 'price_date') }} as month,
         AVG(price_usd_per_oz) as x
     FROM {{ ref('stg_gold_prices') }}
     GROUP BY 1
@@ -18,7 +18,7 @@ WITH prices AS (
 
 rates AS (
     SELECT 
-        date_trunc('month', observation_date) as month,
+        {{ date_trunc('month', 'observation_date') }} as month,
         AVG(real_rate_10y) as y
     FROM {{ ref('stg_real_rates') }}
     GROUP BY 1
