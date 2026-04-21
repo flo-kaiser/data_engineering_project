@@ -1,25 +1,13 @@
 .gcloudignore
-.git/
+.git
+.gitignore
+
+# Erlaube explizit den Upload von Daten für das Dashboard Deployment
+!data/
+!gold_dbt/data/*.duckdb
+
+# Standard Ignorier-Regeln
 .venv/
-.terraform/
-infrastructure/terraform/.terraform/
+node_modules/
 __pycache__/
 *.pyc
-gold_dbt/target/
-gold_dbt/dbt_packages/
-gold_dbt/logs/
-logs/
-/data/
-.venv*
-venv*
-env*
-node_modules/
-.idea/
-.vscode/
-.DS_Store
-*.duckdb-journal
-*.duckdb.tmp
-# gold_dbt/data/gold_market_local.duckdb
-*.exe
-*.zip
-*.log
