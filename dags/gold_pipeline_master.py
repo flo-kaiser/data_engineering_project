@@ -61,19 +61,27 @@ with DAG(
         python_callable=run_indicator_ingestion,
     )
 
-    # Task 3: dbt Run (Silver & Gold Layers)
-    # Nutzt uv run dbt für Umgebungstreue
+    # Common dbt environment variables for Docker portability
     dbt_target = os.getenv('DBT_TARGET', 'dev')
-    task_dbt_run = BashOperator(
-        task_id='dbt_run_gold_marts',
-        bash_command=f'cd /app && uv run dbt run --project-dir gold_dbt --profiles-dir gold_dbt --target {dbt_target}',
+    dbt_env_vars = "export DBT_PACKAGES_DIR=/tmp/dbt_packages_gold &&"
+
+    # Task 3: dbt Deps (Install packages)
+    task_dbt_deps = BashOperator(
+        task_id='dbt_deps',
+        bash_command=f'{dbt_env_vars} cd /app && uv run dbt deps --project-dir gold_dbt --profiles-dir gold_dbt --target {dbt_target}',
     )
 
-    # Task 4: dbt Test (Data Quality)
+    # Task 4: dbt Run (Silver & Gold Layers)
+    task_dbt_run = BashOperator(
+        task_id='dbt_run_gold_marts',
+        bash_command=f'{dbt_env_vars} cd /app && uv run dbt run --project-dir gold_dbt --profiles-dir gold_dbt --target {dbt_target}',
+    )
+
+    # Task 5: dbt Test (Data Quality)
     task_dbt_test = BashOperator(
         task_id='dbt_test_quality_checks',
-        bash_command=f'cd /app && uv run dbt test --project-dir gold_dbt --profiles-dir gold_dbt --target {dbt_target}',
+        bash_command=f'{dbt_env_vars} cd /app && uv run dbt test --project-dir gold_dbt --profiles-dir gold_dbt --target {dbt_target}',
     )
 
     # Lineage: Sequential Ingestion to prevent DuckDB locking issues
-    task_ingest_api >> task_ingest_indicators >> task_dbt_run >> task_dbt_test
+    task_ingest_api >> task_ingest_indicators >> task_dbt_deps >> task_dbt_run >> task_dbt_test
