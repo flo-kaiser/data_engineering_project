@@ -75,10 +75,10 @@ def load_data():
     df_mining = con.execute("SELECT * FROM main.fct_mining_vs_price ORDER BY market_year ASC").df()
     
     con.close()
-    return df_daily, df_summary, df_valuation, df_drivers, df_mining
+    return df_daily, df_summary, df_valuation, df_drivers, df_mining, db_path
 
 try:
-    df_daily, df_summary, df_valuation, df_drivers, df_mining = load_data()
+    df_daily, df_summary, df_valuation, df_drivers, df_mining, db_path = load_data()
     
     # --- Sidebar ---
     st.sidebar.title("🏆 Gold Intelligence")
