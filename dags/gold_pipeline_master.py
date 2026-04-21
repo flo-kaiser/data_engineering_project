@@ -63,15 +63,16 @@ with DAG(
 
     # Task 3: dbt Run (Silver & Gold Layers)
     # Nutzt uv run dbt für Umgebungstreue
+    dbt_target = os.getenv('DBT_TARGET', 'dev')
     task_dbt_run = BashOperator(
         task_id='dbt_run_gold_marts',
-        bash_command='cd /app && uv run dbt run --project-dir gold_dbt --profiles-dir gold_dbt --target dev',
+        bash_command=f'cd /app && uv run dbt run --project-dir gold_dbt --profiles-dir gold_dbt --target {dbt_target}',
     )
 
     # Task 4: dbt Test (Data Quality)
     task_dbt_test = BashOperator(
         task_id='dbt_test_quality_checks',
-        bash_command='cd /app && uv run dbt test --project-dir gold_dbt --profiles-dir gold_dbt --target dev',
+        bash_command=f'cd /app && uv run dbt test --project-dir gold_dbt --profiles-dir gold_dbt --target {dbt_target}',
     )
 
     # Lineage: Sequential Ingestion to prevent DuckDB locking issues
