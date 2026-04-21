@@ -86,8 +86,11 @@ def main():
     logger.info(f"[START] GOLD INTELLIGENCE FRAMEWORK: {ENVIRONMENT.upper()} PIPELINE START")
     logger.info("======================================================")
     
-    if platform.system() != "Windows" and os.getcwd().startswith('/mnt/'):
+    # Determine OS-specific dbt package path
+    is_docker = os.path.exists('/.dockerenv')
+    if (platform.system() != "Windows" and os.getcwd().startswith('/mnt/')) or is_docker:
         dbt_package_dir = "/tmp/dbt_packages_gold"
+        logger.info(f"Environment detected as WSL mount or Docker. Using safe package path: {dbt_package_dir}")
     else:
         dbt_package_dir = "dbt_packages"
     
