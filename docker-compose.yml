@@ -9,7 +9,7 @@ x-airflow-common:
     - PYTHONPATH=/app
     - DBT_TARGET=${DBT_TARGET:-dev}
     - GCP_PROJECT_ID=${GCP_PROJECT_ID}
-    - GCP_DATASET=${GCP_DATASET}
+    - GCP_DATASET=${GCP_DATASET:-bronze}
     - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
     - GCP_KEYFILE_PATH=/app/auth/service_account.json
     - AIRFLOW_HOME=/usr/local/airflow
