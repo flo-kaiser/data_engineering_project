@@ -58,11 +58,22 @@ resource "google_bigquery_dataset" "gold_analytics" {
 resource "google_service_account" "pipeline_sa" {
   account_id   = "gold-pipeline-runner"
   display_name = "Service Account for Gold Intelligence Pipeline"
+  project      = var.project_id
 
   depends_on = [google_project_service.enabled_services]
 }
 
-# --- 4. IAM Roles for Service Account ---
+# --- 4. Service Account Key (for local auth) ---
+resource "google_service_account_key" "pipeline_sa_key" {
+  service_account_id = google_service_account.pipeline_sa.name
+}
+
+resource "local_file" "service_account_key_file" {
+  content  = base64decode(google_service_account_key.pipeline_sa_key.private_key)
+  filename = "${path.module}/../../auth/service_account.json"
+}
+
+# --- 5. IAM Roles for Service Account ---
 # Granting necessary permissions for BigQuery, Storage and Service Account management
 locals {
   pipeline_roles = [
